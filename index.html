@@ -2359,7 +2359,7 @@ function drawElevation(){
     return;
   }
 
-  const pad={l:52,r:58,t:52,b:36}; // t=52: room for icons+ETA above chart, b=36: room for D+/D- inside
+  const pad={l:52,r:58,t:52,b:48}; // t=52: icons+ETA above, b=48: km + waypoint name below
   const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
 
   svg.setAttribute('width', W);
@@ -2443,27 +2443,66 @@ function drawElevation(){
     return segBP * allMults[i] / normMult;
   });
 
-  // Smooth pace with same 25m window logic — apply additional light smoothing
-  // to match RacePace visual style (not too smooth, not too noisy)
-  const W_VIS = 20; // visual smoothing window (in samples)
+  // Smooth pace over a fixed DISTANCE window (not point count) — points are
+  // unevenly spaced (often <1m apart), so a point-count window is meaningless.
+  // 80m window gives a clean curve that still reflects real grade changes.
+  const SMOOTH_PACE_M = 80; // metres each side
   const paceSmoothed = rawPaces.map((_, i) => {
-    const half = W_VIS >> 1;
-    const chunk = rawPaces.slice(Math.max(0, i - half), i + half + 1);
-    return chunk.reduce((a,b)=>a+b,0) / chunk.length;
+    let sum = rawPaces[i], count = 1;
+    // expand backwards
+    let j = i-1, dB = 0;
+    while(j >= 0 && dB < SMOOTH_PACE_M){
+      dB += haversine(pts[j].lat,pts[j].lon,pts[j+1].lat,pts[j+1].lon);
+      sum += rawPaces[j]; count++; j--;
+    }
+    // expand forwards
+    let k = i+1, dF = 0;
+    while(k < pts.length && dF < SMOOTH_PACE_M){
+      dF += haversine(pts[k-1].lat,pts[k-1].lon,pts[k].lat,pts[k].lon);
+      sum += rawPaces[k]; count++; k++;
+    }
+    return sum / count;
   });
+  // Expose for hover (same array the curve is built from)
+  gpx._paceSmoothed = paceSmoothed;
 
-  // Sample for SVG path
+  // Sample for SVG path — always include first and last point (no gaps)
   const pStep = Math.max(1, Math.floor(pts.length / 300));
   const paceSamples = [];
   for(let i=0; i<pts.length; i+=pStep){
-    paceSamples.push({ x: xS(dist[i]), pace: paceSmoothed[i] });
+    paceSamples.push({ x: xS(dist[i]), pace: paceSmoothed[i], idx: i });
+  }
+  // Force last point so the curve reaches the end
+  if(paceSamples.length && paceSamples[paceSamples.length-1].idx !== pts.length-1){
+    paceSamples.push({ x: xS(dist[pts.length-1]), pace: paceSmoothed[pts.length-1], idx: pts.length-1 });
   }
 
   // Pace scale right axis — fixed 3:00 to 25:00 min/km
   const minPace = 3, maxPace = 25;
   const yP = pace => pad.t + cH * (pace - minPace) / (maxPace - minPace);
   const paceTicks = [3, 5, 8, 12, 18, 25];
-  const pacePath = paceSamples.map((p,i)=>`${i===0?'M':'L'}${p.x.toFixed(1)},${yP(p.pace).toFixed(1)}`).join(' ');
+
+  // Build smooth path using Catmull-Rom → cubic Bézier conversion
+  function smoothPath(points){
+    if(points.length < 2) return '';
+    if(points.length === 2) return `M${points[0].x.toFixed(1)},${points[0].y.toFixed(1)} L${points[1].x.toFixed(1)},${points[1].y.toFixed(1)}`;
+    let d = `M${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
+    for(let i=0; i<points.length-1; i++){
+      const p0 = points[i-1] || points[i];
+      const p1 = points[i];
+      const p2 = points[i+1];
+      const p3 = points[i+2] || p2;
+      const t = 0.18; // smoothing tension (lower = tighter)
+      const c1x = p1.x + (p2.x - p0.x) * t;
+      const c1y = p1.y + (p2.y - p0.y) * t;
+      const c2x = p2.x - (p3.x - p1.x) * t;
+      const c2y = p2.y - (p3.y - p1.y) * t;
+      d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+    }
+    return d;
+  }
+  const paceXY = paceSamples.map(p=>({x:p.x, y:yP(p.pace)}));
+  const pacePath = smoothPath(paceXY);
 
   // Segment avg pace dashed lines — now after yP is defined
   const segAvgLines = [];
@@ -2559,6 +2598,9 @@ function drawElevation(){
 
     // Km label on x-axis (only at waypoints, in their color)
     wpSvg += `<text x="${x.toFixed(1)}" y="${(pad.t+cH+14).toFixed(1)}" text-anchor="middle" fill="${color}" font-size="8.5" font-family="-apple-system,Segoe UI,sans-serif" opacity="0.8">${wp.km.toFixed(1)} km</text>`;
+    // Full waypoint name below km
+    const wpNameLbl = wp.name.length > 16 ? wp.name.substring(0,16)+'…' : wp.name;
+    wpSvg += `<text x="${x.toFixed(1)}" y="${(pad.t+cH+25).toFixed(1)}" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="8" font-family="-apple-system,Segoe UI,sans-serif">${wpNameLbl}</text>`;
   });
 
   // D+/D- per segment + distance — inside chart with pill background
@@ -2668,9 +2710,9 @@ ${yTicks.map(t=>`<text x="${pad.l-8}" y="${(t.y+4).toFixed(1)}" text-anchor="end
     if(cursor){ const cx=xS(dM).toFixed(1); cursor.setAttribute('x1',cx); cursor.setAttribute('x2',cx); }
     hv.style.display = 'block';
     hv.style.left = Math.min(rect.width - 170, mx + 12) + 'px';
-    // Find closest pace sample
-    const paceIdx = Math.min(paceSmoothed.length-1, Math.round((dM/maxDist)*(paceSmoothed.length-1)));
-    const paceVal = paceSmoothed[paceIdx];
+    // Pace at the SAME point index as elevation, from the smoothed array used to draw the curve
+    const smArr = gpx._paceSmoothed || [];
+    const paceVal = smArr[Math.min(idx, smArr.length-1)];
     const paceStr = paceVal ? (()=>{const m=Math.floor(paceVal),s=Math.round((paceVal-m)*60);return m+':'+(s<10?'0':'')+s;})() : '';
     hv.innerHTML = `<strong>${ks} km</strong><br>Élév: <span style="color:#FF6B35">${Math.round(pt.ele)} m</span>${paceStr?`<br>Allure: <span style="color:#58A6FF">${paceStr} /km</span>`:''}<br>ETA: ${estimateArrivalTime(+ks)}`;
     showMapCursor(pt.lat, pt.lon);
@@ -3487,8 +3529,9 @@ function recomputeSegPanel(){
   const effortMult  = 1 + effort/100;
   const techniCoeff = TECHNI_COEFF[techni];
 
-  // Pace = Naismith for segment
-  const basePaceKm = BASE_PACE_SOLIDE * getEffortMultiplier() * effortMult * techniCoeff * c1 * c2 * c4;
+  // Pace from getSegBasePace — includes terrain profile (segMeanMult/globalMeanMult)
+  // plus all user coefficients. Single source of truth, matches the curve.
+  const basePaceKm = getSegBasePace(currentSegPanelIdx);
   const movingMin  = distKm * basePaceKm;
   const totalMin   = movingMin + c3;
   const elapsedPaceKm = distKm > 0 ? totalMin / distKm : basePaceKm;

@@ -647,7 +647,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 .float-panel.collapsed{width:0;}
 
 /* ── Floating elevation panel (bottom) ── */
-:root{ --elev-h: 240px; }
+:root{ --elev-h: 300px; }
 .elev-float{
   position:absolute;
   bottom:12px;left:12px;right:12px;
@@ -668,9 +668,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 
 /* Drag handle */
 .elev-float-handle{
-  height:18px;display:flex;align-items:center;justify-content:center;
+  height:12px;display:flex;align-items:center;justify-content:center;
   cursor:ns-resize;flex-shrink:0;user-select:none;
-  padding:4px 0;
+  padding:2px 0;
 }
 .elev-handle-pill{
   width:40px;height:4px;
@@ -696,7 +696,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
   gap:12px;
   padding:0 14px;
   flex-shrink:0;
-  height:44px;
+  height:38px;
 }
 /* Elevation/Table — identical pill buttons with icon + text */
 .elev-view-tabs{
@@ -824,8 +824,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 
 /* Legend */
 .elev-legend{
-  display:flex;align-items:center;gap:16px;
-  padding:3px 14px 5px;flex-shrink:0;
+  display:flex;align-items:center;gap:14px;
+  padding:2px 14px 4px;flex-shrink:0;
 }
 .elev-legend-item{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,0.4);}
 .elev-legend-line{display:inline-block;width:20px;height:2px;border-radius:1px;}

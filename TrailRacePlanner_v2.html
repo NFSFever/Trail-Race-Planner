@@ -1,0 +1,3111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trail Race Planner</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0D1117;--panel:#161B22;--panel2:#1C2128;
+  --border:#30363D;--border2:#21262D;
+  --text:#E6EDF3;--muted:#8B949E;--muted2:#6E7681;
+  --orange:#FF6B35;--orange2:#E55A25;
+  --blue:#58A6FF;--blue-bg:#1B3A5C;
+  --yellow:#E3B341;--yellow-bg:#2D1F0A;
+  --green:#3FB950;--red:#F85149;
+  --purple:#C084FC;--purple-bg:#2A1F3D;
+  --radius:8px;--radius-lg:12px;--nav-w:220px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-system,'Segoe UI',sans-serif;color:var(--text);font-size:13px;}
+
+/* SCREENS */
+.screen{display:none;height:100vh;}
+.screen.active{display:flex;}
+
+/* ══ HOME NAV ══ */
+.home-nav{width:var(--nav-w);min-width:var(--nav-w);background:#111820;border-right:1px solid var(--border);display:flex;flex-direction:column;}
+.home-nav-top{padding:22px 18px 16px;border-bottom:1px solid var(--border2);}
+.nav-avatar{width:40px;height:40px;background:linear-gradient(135deg,var(--orange),#c04a1a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;margin-bottom:10px;}
+.nav-username{font-size:14px;font-weight:600;}
+.nav-subtitle{font-size:11px;color:var(--muted);margin-top:2px;}
+.nav-links{flex:1;padding:10px 0;overflow-y:auto;}
+.nav-link{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;color:var(--muted);cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:inherit;transition:all 0.15s;position:relative;}
+.nav-link:hover{color:var(--text);background:rgba(255,255,255,0.04);}
+.nav-link.active{color:var(--text);background:rgba(255,107,53,0.1);}
+.nav-link.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--orange);border-radius:0 2px 2px 0;}
+.nav-link-icon{font-size:16px;width:20px;text-align:center;}
+.nav-link-label{flex:1;}
+.nav-badge{font-size:10px;padding:1px 7px;border-radius:8px;background:rgba(255,107,53,0.2);color:var(--orange);font-weight:600;}
+.nav-bottom{padding:12px 0;border-top:1px solid var(--border2);}
+
+/* ══ HOME MAIN ══ */
+.home-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.home-topbar{display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.home-tabs{display:flex;}
+.home-tab{padding:6px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;background:none;border:none;font-family:inherit;border-bottom:2px solid transparent;transition:all 0.15s;}
+.home-tab.active{color:var(--text);border-bottom-color:var(--orange);}
+.home-tab:hover{color:var(--text);}
+.topbar-sep{flex:1;}
+
+/* Import dropdown */
+.import-btn-wrap{position:relative;}
+.import-btn{display:flex;align-items:center;gap:8px;background:var(--orange);color:#fff;border:none;border-radius:var(--radius);padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;}
+.import-btn:hover{background:var(--orange2);}
+.import-btn-sep{width:1px;height:20px;background:rgba(255,255,255,0.3);margin:0 2px;}
+.import-dropdown{position:absolute;top:calc(100% + 6px);right:0;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);min-width:240px;box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:50;display:none;overflow:hidden;}
+.import-dropdown.open{display:block;}
+.import-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;transition:background 0.12s;border:none;background:none;width:100%;text-align:left;font-family:inherit;color:var(--text);font-size:13px;}
+.import-opt:hover{background:var(--panel2);}
+.import-opt-icon{width:36px;height:36px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.import-opt-icon.gpx{background:var(--blue-bg);}
+.import-opt-icon.training{background:var(--purple-bg);}
+.import-opt-icon.sample{background:rgba(255,107,53,0.1);}
+.import-opt-title{font-weight:600;font-size:12px;}
+.import-opt-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.import-sep{height:1px;background:var(--border2);margin:2px 0;}
+
+/* Content */
+.home-content{flex:1;overflow-y:auto;padding:24px;}
+.home-content::-webkit-scrollbar{width:6px;}
+.home-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.section-label{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);font-weight:600;margin-bottom:14px;}
+
+/* Empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;color:var(--muted);}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:0.5;}
+.empty-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.empty-sub{font-size:12px;line-height:1.7;max-width:300px;}
+
+/* Library cards */
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:16px;}
+.lib-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:border-color 0.15s,transform 0.12s;position:relative;}
+.lib-card:hover{border-color:rgba(255,107,53,0.5);transform:translateY(-1px);}
+
+/* Card hero */
+.card-hero{height:160px;position:relative;overflow:hidden;background:#0a1520;}
+.card-hero-svg{width:100%;height:100%;position:absolute;inset:0;}
+.card-hero-overlay{position:absolute;inset:0;background:linear-gradient(to right,rgba(13,17,23,0.85) 30%,rgba(13,17,23,0.15) 100%);}
+.card-hero-content{position:absolute;inset:0;padding:18px 20px;display:flex;flex-direction:column;justify-content:flex-end;}
+.card-type-badge{position:absolute;top:14px;left:14px;font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;}
+.card-type-badge.gpx{background:rgba(88,166,255,0.2);color:var(--blue);border:1px solid rgba(88,166,255,0.3);}
+.card-type-badge.training{background:rgba(192,132,252,0.2);color:var(--purple);border:1px solid rgba(192,132,252,0.3);}
+.card-name{font-size:18px;font-weight:700;line-height:1.2;}
+.card-location{font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;}
+
+/* Countdown */
+.card-countdown{position:absolute;top:12px;right:12px;background:rgba(22,27,34,0.88);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;text-align:center;backdrop-filter:blur(6px);min-width:120px;}
+.countdown-label{font-size:10px;color:var(--muted);margin-bottom:6px;}
+.countdown-blocks{display:flex;gap:4px;justify-content:center;}
+.countdown-block{background:var(--panel2);border-radius:5px;padding:5px 8px;min-width:34px;text-align:center;}
+.countdown-num{font-size:15px;font-weight:700;line-height:1;}
+.countdown-unit{font-size:8px;color:var(--muted);margin-top:2px;}
+
+/* Card body */
+.card-body{padding:14px 18px 16px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
+.card-stats{display:flex;gap:16px;flex-wrap:wrap;}
+.card-stat{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;}
+.card-stat strong{color:var(--text);font-size:13px;}
+.card-time-main{font-size:22px;font-weight:700;color:var(--orange);}
+.card-time-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.card-open-btn{background:var(--orange);color:#fff;border:none;border-radius:var(--radius);padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;transition:background 0.15s;}
+.card-open-btn:hover{background:var(--orange2);}
+.card-del-btn{position:absolute;top:10px;right:10px;background:rgba(22,27,34,0.85);border:1px solid var(--border);color:var(--muted);border-radius:50%;width:26px;height:26px;display:none;align-items:center;justify-content:center;cursor:pointer;font-size:14px;z-index:2;transition:all 0.12s;}
+.lib-card:hover .card-del-btn{display:flex;}
+.card-del-btn:hover{background:var(--red);border-color:var(--red);color:#fff;}
+
+
+/* ══ SEGMENT PANEL ══ */
+.seg-panel-inner{
+  display:none;flex-direction:column;height:100%;
+  background:rgba(12,18,26,0.84);
+  backdrop-filter:blur(18px) saturate(1.5);
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);
+  border-radius:14px;
+  overflow:hidden;
+  pointer-events:all;
+  box-shadow:0 8px 32px rgba(0,0,0,0.55),0 0 0 0.5px rgba(255,255,255,0.04) inset;
+}
+
+/* Header badges row */
+.seg-badges{ display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px; }
+.seg-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  padding:3px 8px;border-radius:20px;border:1px solid transparent;
+}
+
+/* ETA block */
+.seg-eta-block{
+  background:rgba(255,107,53,0.06);
+  border:1px solid rgba(255,107,53,0.2);
+  border-radius:8px;padding:10px 12px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.seg-eta-time{ font-size:20px;font-weight:800;color:#FF6B35;letter-spacing:-.5px; }
+.seg-eta-sub{ font-size:10px;color:rgba(255,255,255,0.3);margin-top:2px; }
+.seg-eta-right{ text-align:right; }
+.seg-eta-dur{ font-size:14px;font-weight:700;color:#E6EDF3; }
+
+/* Effort local — thinner track */
+.seg-effort-wrap{ margin-bottom:2px; }
+.seg-effort-track{
+  position:relative;height:22px;
+}
+.seg-ezone{ position:absolute;top:7px;height:6px;pointer-events:none; }
+.seg-ezone-bon  { left:0;width:33.33%;background:linear-gradient(90deg,rgba(63,185,80,.65),rgba(63,185,80,.15));border-radius:3px 0 0 3px; }
+.seg-ezone-sol  { left:33.33%;width:33.34%;background:rgba(227,179,65,.15); }
+.seg-ezone-dur  { left:66.67%;width:33.33%;background:linear-gradient(90deg,rgba(248,81,73,.15),rgba(248,81,73,.65));border-radius:0 3px 3px 0; }
+.seg-effort-border{ position:absolute;top:7px;left:0;right:0;height:6px;border-radius:3px;border:1px solid rgba(255,255,255,0.12); }
+.seg-effort-tick{ position:absolute;top:7px;width:1px;height:6px;background:rgba(255,255,255,.18);pointer-events:none; }
+.seg-effort-range{
+  position:absolute;inset:0;width:100%;height:100%;
+  -webkit-appearance:none;appearance:none;
+  background:transparent !important;margin:0;padding:0;cursor:pointer;z-index:2;outline:none;
+}
+.seg-effort-range::-webkit-slider-runnable-track{ height:6px;border-radius:3px;background:transparent;border:none; }
+.seg-effort-range::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:14px;margin-top:4px;
+  border-radius:50%;background:var(--orange);
+  border:2px solid rgba(10,14,20,.95);box-shadow:0 0 0 1px var(--orange);
+  cursor:pointer;transition:box-shadow .15s,transform .1s;
+}
+.seg-effort-range:hover::-webkit-slider-thumb{ box-shadow:0 0 0 3px rgba(255,107,53,.25),0 0 0 1px var(--orange);transform:scale(1.1); }
+.seg-effort-range::-moz-range-thumb{ width:14px;height:14px;border-radius:50%;background:var(--orange);border:2px solid rgba(10,14,20,.95);box-shadow:0 0 0 1px var(--orange);cursor:pointer; }
+.seg-effort-labels{ display:flex;justify-content:space-between;font-size:9px;margin-top:3px; }
+
+/* Technicité buttons */
+.techni-btns{ display:flex;gap:4px; }
+.tb{
+  flex:1;padding:5px 0;font-size:10px;font-weight:600;
+  border-radius:6px;border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);
+  cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;
+}
+.tb:hover{ border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.65); }
+.tb.sel-easy   { background:rgba(63,185,80,0.12);border-color:rgba(63,185,80,0.4);color:#3FB950; }
+.tb.sel-mod    { background:rgba(227,179,65,0.12);border-color:rgba(227,179,65,0.4);color:#E3B341; }
+.tb.sel-hard   { background:rgba(248,81,73,0.12);border-color:rgba(248,81,73,0.4);color:#F85149; }
+.tb.sel-extreme{ background:rgba(192,132,252,0.12);border-color:rgba(192,132,252,0.4);color:#C084FC; }
+.techni-hint{ font-size:10px;color:rgba(255,255,255,0.25);margin-top:5px; }
+
+/* Collapsible subsections inside segment panel */
+.seg-subsec{ border-bottom:1px solid rgba(255,255,255,0.06); }
+.seg-subsec:last-child{ border-bottom:none; }
+.seg-subsec-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 16px;cursor:pointer;user-select:none;
+}
+.seg-subsec-head:hover{ background:rgba(255,255,255,0.02); }
+.seg-subsec-title{ font-size:12px;font-weight:600;color:#E6EDF3; }
+.seg-subsec-right{ display:flex;align-items:center;gap:6px; }
+.seg-subsec-summary{ font-size:11px;color:rgba(255,255,255,0.35); }
+.seg-subsec-chevron{ font-size:10px;color:rgba(255,255,255,0.3);transition:transform .2s; }
+.seg-subsec.open .seg-subsec-chevron{ transform:rotate(180deg); }
+.seg-subsec-body{
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  transition:max-height .3s ease, opacity .2s ease;
+}
+.seg-subsec.open .seg-subsec-body{ max-height:600px; opacity:1; }
+.seg-subsec-inner{ padding:0 16px 12px; }
+
+/* Coeff grid */
+.coeff-grid{ display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+.coeff-card{
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);
+  border-radius:8px;padding:8px 10px;
+}
+.coeff-label{ font-size:9px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px; }
+.coeff-val{ font-size:15px;font-weight:700;color:#FF6B35;margin-bottom:3px; }
+.coeff-hint{ font-size:9px;color:rgba(255,255,255,0.22);margin-top:2px; }
+
+/* Pacing detail rows */
+.seg-row{ display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04); }
+.seg-row:last-child{ border-bottom:none; }
+.seg-row-l{ font-size:11px;color:rgba(255,255,255,0.42); }
+.seg-row-v{ font-size:12px;font-weight:500;color:#E6EDF3; }
+.seg-row-v.or{ color:#FF6B35; }
+.seg-row-v.gr{ color:#3FB950; }
+
+/* Stats mini in header */
+.seg-stats{ display:flex;gap:12px;flex-wrap:wrap;align-items:center; }
+.seg-stat{ font-size:11px;color:rgba(255,255,255,0.4); }
+.seg-stat .sv{ color:#E6EDF3;font-weight:500; }
+
+/* Nav bar */
+.seg-nav{ display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid rgba(255,255,255,0.07);flex-shrink:0; }
+.seg-nav-btn{
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  border-radius:6px;padding:5px 10px;color:rgba(255,255,255,0.5);
+  cursor:pointer;font-size:11px;font-family:inherit;transition:all .15s;
+  display:flex;align-items:center;gap:4px;
+}
+.seg-nav-btn:hover{ color:#E6EDF3;border-color:rgba(255,255,255,0.22); }
+.seg-nav-btn:disabled{ opacity:.25;cursor:default; }
+.seg-nav-lbl{ font-size:11px;font-weight:600;color:rgba(255,255,255,0.5); }
+
+/* ══ APP SCREEN ══ */
+#appScreen{flex-direction:column;}
+.app-topbar{height:36px;background:rgba(13,17,23,0.95);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:0 14px;flex-shrink:0;backdrop-filter:blur(8px);}
+.app-back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;font-family:inherit;padding:4px 8px;border-radius:5px;transition:all 0.12s;}
+.app-back-btn:hover{color:var(--text);background:var(--panel2);}
+.app-topbar-title{font-size:13px;font-weight:500;color:var(--text);}
+.app-topbar-badge{font-size:10px;padding:2px 8px;border-radius:8px;background:rgba(255,107,53,0.15);color:var(--orange);font-weight:500;}
+.app-topbar-action{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:4px 12px;color:var(--muted);cursor:pointer;font-size:11px;font-family:inherit;transition:all 0.12s;}
+.app-topbar-action:hover{color:var(--orange);border-color:var(--orange);}
+
+/* App body: map fills everything, panel floats */
+.app-body{position:relative;flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.map-wrap{position:absolute;inset:0;display:flex;flex-direction:column;}
+
+/* ── Floating panel (left) ── */
+.float-panel-inner{
+  flex:1;min-width:0;
+  background:rgba(12,18,26,0.84);
+  backdrop-filter:blur(18px) saturate(1.5);
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  pointer-events:all;
+  transition:opacity 0.25s,transform 0.25s;
+  box-shadow:0 8px 32px rgba(0,0,0,0.55),0 0 0 0.5px rgba(255,255,255,0.04) inset;
+}
+.float-panel.collapsed .float-panel-inner{
+  opacity:0;pointer-events:none;transform:translateX(-12px);
+}
+
+/* Collapse tab */
+.panel-collapse-btn{
+  position:absolute;
+  left:100%;          /* always tracks right edge of panel */
+  margin-left:-1px;
+  top:50%;transform:translateY(-50%);
+  width:26px;height:52px;
+  background:rgba(12,18,26,0.84);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.1);
+  border-left:none;
+  border-radius:0 9px 9px 0;
+  color:var(--muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:300;
+  pointer-events:all;
+  transition:background 0.15s, color 0.15s;
+  box-shadow:3px 0 12px rgba(0,0,0,0.3);
+}
+.panel-collapse-btn:hover{background:rgba(255,107,53,0.18);color:var(--orange);}
+
+/* Panel header */
+.fp-header{padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;}
+.fp-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.fp-title{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fp-badge{display:inline-block;font-size:10px;padding:2px 9px;border-radius:10px;background:rgba(255,107,53,0.18);color:var(--orange);font-weight:600;border:1px solid rgba(255,107,53,0.3);}
+.fp-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 5px;border-radius:4px;flex-shrink:0;transition:all 0.12s;}
+.fp-close:hover{color:var(--red);background:rgba(248,81,73,0.12);}
+
+/* Scroll area */
+.fp-scroll{flex:1;overflow-y:auto;padding-bottom:16px;}
+.fp-scroll::-webkit-scrollbar{width:3px;}
+.fp-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
+
+/* Sections */
+.fp-section{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.fp-section:last-child{border-bottom:none;}
+.fp-section-label{font-size:9px;text-transform:uppercase;letter-spacing:1.4px;color:rgba(255,255,255,0.35);font-weight:700;margin-bottom:4px;}
+.fp-finish-time{font-size:38px;font-weight:800;color:var(--orange);line-height:1;margin-bottom:14px;letter-spacing:-1px;transition:color 0.35s;}
+
+/* Effort slider */
+.effort-slider-wrap{margin:0 0 14px;}
+.effort-track-wrap{
+  position:relative;
+  height:28px;   /* exact height = track(8) + top offset(11) + thumb overflow(9) */
+  margin-bottom:4px;
+}
+/* Coloured zone backgrounds sit at y=10, height=8 */
+.effort-zone{position:absolute;top:10px;height:8px;pointer-events:none;}
+.effort-zone-bon{left:0;width:33.33%;background:linear-gradient(90deg,rgba(63,185,80,0.7),rgba(63,185,80,0.18));border-radius:4px 0 0 4px;}
+.effort-zone-solide{left:33.33%;width:33.34%;background:rgba(227,179,65,0.18);}
+.effort-zone-dur{left:66.67%;width:33.33%;background:linear-gradient(90deg,rgba(248,81,73,0.18),rgba(248,81,73,0.7));border-radius:0 4px 4px 0;}
+/* Divider ticks */
+.effort-track-wrap::before,.effort-track-wrap::after{content:'';position:absolute;top:10px;width:1px;height:8px;background:rgba(255,255,255,0.18);z-index:1;pointer-events:none;}
+.effort-track-wrap::before{left:calc(33.33% - 0.5px);}
+.effort-track-wrap::after{left:calc(66.67% - 0.5px);}
+
+/* Range input itself — transparent, covers the full wrap */
+.effort-range{
+  -webkit-appearance:none;appearance:none;
+  position:absolute;inset:0;width:100%;height:100%;
+  background:transparent !important;
+  margin:0;padding:0;cursor:pointer;z-index:2;outline:none;
+}
+/* Webkit track: sits at vertical centre of the 28px input = y=10, matches zones */
+.effort-range::-webkit-slider-runnable-track{
+  height:8px;
+  border-radius:4px;
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.14);
+}
+/* Thumb effort : 16px centré sur la track 8px → margin-top = -((16-8)/2) = -4px */
+.effort-range::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:16px;height:16px;
+  margin-top:-4px;
+  border-radius:50%;
+  background:var(--orange);
+  border:2.5px solid rgba(10,14,20,0.95);
+  box-shadow:0 0 0 1.5px var(--orange);
+  cursor:pointer;
+  transition:box-shadow 0.15s, transform 0.1s;
+}
+.effort-range:hover::-webkit-slider-thumb{
+  box-shadow:0 0 0 3px rgba(255,107,53,0.25), 0 0 0 1.5px var(--orange);
+  transform:scale(1.1);
+}
+.effort-range::-moz-range-track{
+  height:8px;border-radius:4px;
+  background:transparent;border:1px solid rgba(255,255,255,0.14);
+}
+.effort-range::-moz-range-thumb{
+  width:16px;height:16px;border-radius:50%;
+  background:var(--orange);border:2.5px solid rgba(10,14,20,0.95);
+  box-shadow:0 0 0 1.5px var(--orange);cursor:pointer;
+  appearance:none;
+}
+.effort-zone-labels{display:flex;justify-content:space-between;font-size:10px;margin-top:3px;}
+.effort-lbl-bon{color:var(--green);}
+.effort-lbl-solide{color:var(--yellow);text-align:center;}
+.effort-lbl-dur{color:var(--red);text-align:right;}
+
+/* Key stats */
+.fp-stat{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.fp-stat:last-child{border-bottom:none;}
+.fp-stat-l{font-size:12px;color:rgba(255,255,255,0.45);}
+.fp-stat-v{font-size:12px;font-weight:500;color:var(--text);}
+.fp-orange{color:var(--orange)!important;}
+
+/* Collapsible sections — collapsed = body hidden */
+.fp-section-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;padding:0;}
+.fp-section-title{font-size:13px;font-weight:600;color:var(--text);}
+.fp-chevron{font-size:11px;color:var(--muted);transition:transform 0.22s;display:inline-block;line-height:1;}
+/* When open (not collapsed): chevron points up ∧ */
+.fp-collapsible:not(.collapsed) .fp-chevron{transform:rotate(180deg);}
+.fp-section-body{
+  overflow:hidden;
+  transition:max-height 0.28s ease, opacity 0.2s ease, margin-top 0.2s ease;
+}
+/* Open state — JS sets max-height to scrollHeight */
+.fp-collapsible:not(.collapsed) .fp-section-body{opacity:1;}
+/* Closed state */
+.fp-collapsible.collapsed .fp-section-body{max-height:0!important;opacity:0;margin-top:0!important;}
+
+.fp-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.fp-row:last-child{border-bottom:none;}
+.fp-row-l{font-size:11px;color:rgba(255,255,255,0.42);}
+.fp-row-v{font-size:12px;font-weight:500;color:var(--text);}
+
+/* Race start clickable row */
+.fp-stat-clickable{cursor:pointer;}
+.fp-stat-clickable:hover .fp-stat-l{color:rgba(255,255,255,0.7);}
+.fp-stat-clickable:hover{background:rgba(255,255,255,0.03);margin:0 -16px;padding:5px 16px;border-radius:6px;}
+
+/* Pacing plan — editable target time */
+.pace-target-edit{
+  display:flex;align-items:center;gap:2px;
+  background:rgba(255,107,53,0.12);
+  border:1px solid rgba(255,107,53,0.28);
+  border-radius:6px;
+  padding:2px 6px;
+  transition:border-color 0.15s, background 0.15s;
+}
+.pace-target-edit:focus-within{
+  background:rgba(255,107,53,0.18);
+  border-color:rgba(255,107,53,0.6);
+  box-shadow:0 0 0 2px rgba(255,107,53,0.12);
+}
+.pace-t-inp{
+  width:26px;
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--orange);
+  font-size:12px;
+  font-weight:700;
+  font-family:inherit;
+  text-align:center;
+  padding:0;
+  -moz-appearance:textfield;
+}
+.pace-t-inp::-webkit-outer-spin-button,
+.pace-t-inp::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.pace-t-inp::placeholder{ color:rgba(255,107,53,0.4); }
+.pace-t-inp:focus{ color:#fff; }
+.pace-t-min{ width:22px; }
+.pace-t-sep{
+  font-size:11px;
+  font-weight:600;
+  color:rgba(255,107,53,0.7);
+  line-height:1;
+  padding:0 1px;
+}
+
+/* Cutoffs inside panel */
+.cutoff-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:11px;}
+.cutoff-item:last-child{border-bottom:none;}
+.cutoff-name{flex:1;color:rgba(255,255,255,0.65);}
+.cutoff-time{color:var(--yellow);font-weight:600;min-width:46px;text-align:right;}
+.cutoff-buf{font-size:10px;min-width:38px;text-align:right;}
+.cutoff-buf.ok{color:var(--green);}
+.cutoff-buf.warn{color:var(--yellow);}
+.cutoff-buf.danger{color:var(--red);}
+
+/* Waypoints inside panel */
+.wp-list{display:flex;flex-direction:column;gap:5px;}
+.wp-item{background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.07);padding:8px 10px;transition:border-color 0.15s;}
+.wp-item:hover{border-color:rgba(88,166,255,0.35);}
+.wp-head{display:flex;align-items:center;gap:7px;margin-bottom:5px;}
+.wp-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.wp-icon.wpt   {background:#1B3A5C;border:1.5px solid rgba(88,166,255,0.4);}
+.wp-icon.rfuel-light{background:rgba(88,166,255,0.1);border:1.5px solid rgba(88,166,255,0.45);}
+.wp-icon.rfuel-full {background:rgba(255,107,53,0.1);border:1.5px solid rgba(255,107,53,0.5);}
+.wp-icon.start {background:#1F3A2B;border:1.5px solid rgba(63,185,80,0.4);}
+.wp-icon.end   {background:#3A1F1F;border:1.5px solid rgba(248,81,73,0.4);}
+.wp-name-input{
+  flex:1;background:transparent;border:none;
+  color:var(--text);font-size:12px;font-weight:500;
+  font-family:inherit;outline:none;min-width:0;
+  border-bottom:1px solid transparent;
+  transition:border-color 0.15s,color 0.15s;
+  cursor:default;
+  padding-bottom:1px;
+}
+.wp-name-input:not([readonly]):focus{
+  color:var(--orange);
+  border-bottom-color:var(--orange);
+  cursor:text;
+}
+.wp-name-input[readonly]{cursor:default;}
+.wp-del{background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;opacity:0;transition:opacity 0.15s;}
+.wp-item:hover .wp-del{opacity:1;}
+.wp-edit-icon{
+  color:rgba(255,255,255,0.2);cursor:pointer;
+  display:flex;align-items:center;padding:0 2px;
+  opacity:0;transition:opacity 0.15s;flex-shrink:0;
+}
+.wp-item:hover .wp-edit-icon{opacity:1;}
+.wp-edit-icon:hover{color:var(--orange);}
+.wp-stats{display:flex;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+.wp-stat{font-size:10px;color:rgba(255,255,255,0.35);}
+.wp-stat span{color:rgba(255,255,255,0.7);font-weight:500;}
+.wp-km-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.wp-km-row label{font-size:10px;color:rgba(255,255,255,0.35);}
+.wp-km-row input[type=range]{flex:1;}
+.wp-km-val{font-size:10px;color:var(--orange);min-width:28px;text-align:right;}
+.type-btns{display:flex;gap:3px;flex-wrap:wrap;}
+.type-btn{font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.4);cursor:pointer;transition:all 0.15s;font-family:inherit;}
+.type-btn.a-wpt         {background:#1B3A5C;color:#58A6FF;border-color:rgba(88,166,255,0.5);}
+.type-btn.a-rfuel-light {background:rgba(88,166,255,0.1);color:#58A6FF;border-color:rgba(88,166,255,0.4);}
+.type-btn.a-rfuel-full  {background:rgba(255,107,53,0.1);color:#FF6B35;border-color:rgba(255,107,53,0.45);}
+.add-wp{width:100%;padding:6px;border:1px dashed rgba(255,255,255,0.13);border-radius:var(--radius);background:transparent;color:rgba(255,255,255,0.3);cursor:pointer;font-size:11px;transition:all 0.15s;font-family:inherit;margin-top:5px;}
+.add-wp:hover{border-color:var(--orange);color:var(--orange);}
+
+/* Map */
+.map-area{flex:1;position:relative;background:var(--bg);overflow:hidden;min-height:0;}
+.map-grid-bg{position:absolute;inset:0;}
+#routeSvg{display:none;}
+.map-info-bar{display:none;}
+/* ── Map controls: icon sidebar + flyout menus ── */
+.map-controls{
+  position:absolute;top:14px;right:14px;
+  display:none;flex-direction:column;gap:6px;
+  z-index:10;align-items:flex-end;
+}
+
+/* Icon button */
+.mctrl-icon-btn{
+  width:36px;height:36px;
+  background:rgba(12,18,26,0.82);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:9px;
+  color:rgba(255,255,255,0.7);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;
+  padding:0;flex-shrink:0;
+}
+.mctrl-icon-btn:hover,
+.mctrl-group:hover .mctrl-icon-btn{
+  border-color:var(--orange);
+  color:var(--orange);
+  background:rgba(255,107,53,0.1);
+}
+
+/* Group = icon + flyout */
+.mctrl-group{
+  position:relative;
+  display:flex;align-items:center;
+}
+
+/* Flyout panel — hidden by default, appears on group hover */
+.mctrl-flyout{
+  position:absolute;
+  right:calc(100% + 8px);
+  top:50%;
+  background:rgba(12,18,26,0.92);
+  backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:10px;
+  padding:6px;
+  min-width:160px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.45);
+  opacity:0;pointer-events:none;
+  transform:translateY(-50%) translateX(4px);
+  transition:opacity 0.12s, transform 0.12s;
+  white-space:nowrap;
+}
+/* Invisible bridge to fill the 8px gap between icon and flyout */
+.mctrl-flyout::after{
+  content:'';
+  position:absolute;
+  top:0;right:-12px;
+  width:12px;height:100%;
+}
+.mctrl-group:hover .mctrl-flyout{
+  opacity:1;pointer-events:all;
+  transform:translateY(-50%) translateX(0);
+}
+
+.mctrl-flyout-label{
+  font-size:9px;text-transform:uppercase;letter-spacing:1px;
+  color:rgba(255,255,255,0.3);font-weight:600;
+  padding:4px 8px 6px;
+}
+.mctrl-flyout-sep{height:1px;background:rgba(255,255,255,0.08);margin:4px 0;}
+.mctrl-opacity-row{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 10px 4px;
+  color:rgba(255,255,255,0.45);font-size:11px;
+}
+.mctrl-opacity-row input[type=range]{
+  flex:1;min-width:0;height:3px;
+  accent-color:var(--orange);
+}
+#mapOpacityVal{
+  min-width:32px;text-align:right;
+  font-size:10px;color:var(--orange);font-weight:600;
+}
+
+.mctrl-opt{
+  display:flex;align-items:center;gap:8px;
+  width:100%;padding:7px 10px;
+  border-radius:6px;border:none;background:none;
+  color:rgba(255,255,255,0.6);cursor:pointer;
+  font-family:inherit;font-size:12px;font-weight:400;
+  text-align:left;transition:all 0.12s;
+}
+.mctrl-opt:hover{background:rgba(255,255,255,0.08);color:var(--text);}
+.mctrl-opt.active{color:var(--orange);}
+.mctrl-opt.active::before{
+  content:'';width:3px;height:100%;
+  position:absolute;left:0;border-radius:0 2px 2px 0;
+  background:var(--orange);
+}
+/* Relative on parent for active marker */
+.mctrl-flyout{position:absolute;}
+.mctrl-opt{position:relative;}
+
+/* ── Floating panel bottom adapts to elev height ── */
+.float-panel{
+  position:absolute;top:12px;left:12px;
+  bottom:calc(var(--elev-h) + 24px);
+  width:340px;z-index:20;
+  display:flex;align-items:stretch;
+  pointer-events:none;
+  transition:width 0.3s ease, bottom 0.3s ease;
+}
+.float-panel.collapsed{width:0;}
+
+/* ── Floating elevation panel (bottom) ── */
+:root{ --elev-h: 240px; }
+.elev-float{
+  position:absolute;
+  bottom:12px;left:12px;right:12px;
+  height:var(--elev-h);
+  background:rgba(10,14,20,0.78);
+  backdrop-filter:blur(20px) saturate(1.5);
+  -webkit-backdrop-filter:blur(20px) saturate(1.5);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.04) inset;
+  z-index:15;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  transition:height 0.25s ease;
+}
+.elev-float.dragging{ transition:none; } /* instant during drag */
+.elev-float.collapsed{ height:62px; }
+
+/* Drag handle */
+.elev-float-handle{
+  height:18px;display:flex;align-items:center;justify-content:center;
+  cursor:ns-resize;flex-shrink:0;user-select:none;
+  padding:4px 0;
+}
+.elev-handle-pill{
+  width:40px;height:4px;
+  background:rgba(255,255,255,0.18);
+  border-radius:2px;
+  transition:background 0.15s, width 0.15s;
+  pointer-events:none;
+}
+.elev-float-handle:hover .elev-handle-pill{
+  background:rgba(255,255,255,0.45);
+  width:56px;
+}
+.elev-float.dragging .elev-handle-pill{
+  background:var(--orange);
+  width:56px;
+}
+
+/* Top bar */
+.elev-float-bar{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:12px;
+  padding:0 14px;
+  flex-shrink:0;
+  height:44px;
+}
+/* Elevation/Table — identical pill buttons with icon + text */
+.elev-view-tabs{
+  display:flex;gap:2px;
+  background:rgba(255,255,255,0.07);
+  border-radius:8px;padding:2px;flex-shrink:0;
+}
+.elev-view-btn{
+  box-sizing:border-box;
+  width:90px;height:28px;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  border-radius:6px;border:none;background:none;
+  color:rgba(255,255,255,0.45);cursor:pointer;
+  font-family:inherit;font-size:11px;font-weight:500;
+  transition:all 0.15s;flex-shrink:0;
+  padding:0 8px;
+}
+.elev-view-btn span{white-space:nowrap;}
+.elev-view-btn.active{background:rgba(255,255,255,0.13);color:var(--text);}
+.elev-view-btn:hover:not(.active){color:rgba(255,255,255,0.75);}
+
+/* Centre — segment nav + subtitle below, centred in middle 1fr */
+.elev-seg-nav{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  justify-self:center;
+}
+.elev-seg-nav-row{
+  display:flex;align-items:center;gap:4px;
+  background:rgba(255,255,255,0.07);border-radius:8px;padding:3px 8px;
+}
+.elev-seg-nav-btn{
+  width:22px;height:22px;border-radius:4px;border:none;background:none;
+  color:rgba(255,255,255,0.5);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;padding:0;
+}
+.elev-seg-nav-btn:hover{background:rgba(255,255,255,0.1);color:var(--text);}
+.elev-seg-nav-btn:disabled{opacity:0.22;cursor:default;}
+.elev-seg-label{
+  font-size:12px;font-weight:600;color:var(--text);
+  min-width:90px;text-align:center;white-space:nowrap;
+}
+.elev-seg-subtitle{
+  font-size:10px;color:rgba(255,255,255,0.38);
+  text-align:center;white-space:nowrap;
+  max-width:300px;overflow:hidden;text-overflow:ellipsis;
+  line-height:13px;
+}
+
+/* Right group */
+.elev-bar-right{
+  display:flex;align-items:center;gap:8px;
+  justify-self:end;
+}
+/* Type toggle buttons — icon + text */
+.elev-type-filters{display:flex;gap:4px;}
+.elev-type-btn{
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  padding:3px 10px;height:26px;
+  border-radius:6px;
+  border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.04);
+  color:rgba(255,255,255,0.35);
+  cursor:pointer;font-family:inherit;font-size:11px;font-weight:500;
+  transition:all 0.15s;white-space:nowrap;
+}
+.elev-type-btn span{pointer-events:none;}
+.elev-type-btn:hover{border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.65);}
+#ftype-waypoint.active  {background:rgba(88,166,255,0.15);border-color:rgba(88,166,255,0.5);color:#58A6FF;}
+#ftype-refuel-light.active{background:rgba(88,166,255,0.12);border-color:rgba(88,166,255,0.4);color:#58A6FF;}
+#ftype-refuel-full.active {background:rgba(255,107,53,0.15);border-color:rgba(255,107,53,0.5);color:#FF6B35;}
+
+/* Chart */
+.elev-chart-wrap{flex:1;position:relative;min-height:0;overflow:hidden;}
+.elev-chart-wrap svg{width:100%;height:100%;display:block;cursor:crosshair;}
+.elev-hover{
+  position:absolute;background:rgba(10,15,22,0.95);
+  border:1px solid rgba(255,255,255,0.12);border-radius:8px;
+  padding:7px 11px;font-size:11px;pointer-events:none;
+  display:none;bottom:40px;z-index:5;line-height:1.6;
+  box-shadow:0 4px 16px rgba(0,0,0,0.4);
+}
+
+/* Legend */
+.elev-legend{
+  display:flex;align-items:center;gap:16px;
+  padding:3px 14px 5px;flex-shrink:0;
+}
+.elev-legend-item{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,0.4);}
+.elev-legend-line{display:inline-block;width:20px;height:2px;border-radius:1px;}
+
+/* Table view — inside bottom panel, replaces chart */
+.table-view{display:none;flex:1;overflow:auto;min-height:0;}
+.table-view table{width:100%;border-collapse:collapse;font-size:12px;}
+.table-view th{text-align:left;padding:7px 12px;border-bottom:2px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;position:sticky;top:0;background:rgba(10,14,20,0.95);}
+.table-view td{padding:7px 12px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text);}
+.table-view tr:hover td{background:rgba(255,255,255,0.04);}
+.table-view td.or{color:var(--orange);font-weight:500;}
+.table-view td.bl{color:var(--blue);}
+.table-view td.ye{color:var(--yellow);}
+.table-view td.gr{color:var(--green);}
+.seg-bar{height:4px;border-radius:2px;background:var(--orange);min-width:2px;}
+
+/* Modals */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;display:none;align-items:center;justify-content:center;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:380px;max-width:95vw;}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:16px;}
+.modal-field{margin-bottom:12px;}
+.modal-field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;}
+.modal-field input,.modal-field select,.modal-field textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;font-family:inherit;}
+.modal-field textarea{resize:vertical;min-height:60px;}
+.modal-field input:focus,.modal-field select:focus{outline:none;border-color:var(--orange);}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
+.btn-primary{background:var(--orange);color:#fff;border:none;border-radius:var(--radius);padding:8px 18px;font-size:13px;cursor:pointer;font-weight:600;font-family:inherit;transition:background 0.15s;}
+.btn-primary:hover{background:var(--orange2);}
+.btn-cancel{background:transparent;border:1px solid var(--border);border-radius:var(--radius);padding:8px 16px;color:var(--muted);cursor:pointer;font-size:12px;font-family:inherit;}
+.btn-cancel:hover{color:var(--text);}
+
+/* Notif */
+.notif{position:fixed;bottom:20px;right:20px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;font-size:12px;z-index:200;transform:translateY(60px);transition:transform 0.25s;max-width:280px;}
+.notif.show{transform:translateY(0);}
+.notif.ok{border-color:var(--green);color:var(--green);}
+.notif.err{border-color:var(--red);color:var(--red);}
+.notif.info{border-color:var(--blue);color:var(--blue);}
+
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+input[type=file]{display:none;}
+body.elev-dragging, body.elev-dragging *{ cursor:ns-resize !important; user-select:none !important; }
+
+/* ── Global range slider — 10px thumb, 4px track ── */
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  height:4px;border-radius:2px;
+  background:var(--border2);
+  outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:4px;border-radius:2px;background:inherit;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:10px;height:10px;
+  margin-top:-3px;
+  border-radius:50%;
+  background:var(--orange);
+  border:2px solid rgba(10,14,20,0.95);
+  box-shadow:0 0 0 1px var(--orange);
+  cursor:pointer;
+  transition:box-shadow 0.15s,transform 0.1s;
+}
+input[type=range]:hover::-webkit-slider-thumb{
+  box-shadow:0 0 0 3px rgba(255,107,53,0.25),0 0 0 1px var(--orange);
+  transform:scale(1.2);
+}
+input[type=range]:active::-webkit-slider-thumb{ transform:scale(0.95); }
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--border2);border:none;}
+input[type=range]::-moz-range-thumb{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--orange);border:2px solid rgba(10,14,20,0.95);
+  box-shadow:0 0 0 1px var(--orange);cursor:pointer;
+}
+input[type=range]:disabled::-webkit-slider-thumb{background:var(--muted2);box-shadow:0 0 0 1px var(--muted2);cursor:default;}
+input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow:0 0 0 1px var(--muted2);}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     HOME SCREEN
+══════════════════════════════════ -->
+<div class="screen active" id="homeScreen">
+  <nav class="home-nav">
+    <div class="home-nav-top">
+      <div class="nav-avatar">AP</div>
+      <div class="nav-username">Arnaud</div>
+      <div class="nav-subtitle">Trail Runner</div>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link active" onclick="setHomeTab('races',this)">
+        <span class="nav-link-icon">🏁</span>
+        <span class="nav-link-label">Mes courses</span>
+        <span class="nav-badge" id="racesCount">0</span>
+      </button>
+      <button class="nav-link" onclick="setHomeTab('training',this)">
+        <span class="nav-link-icon">🏃</span>
+        <span class="nav-link-label">Entraînements</span>
+        <span class="nav-badge" id="trainingCount">0</span>
+      </button>
+      <button class="nav-link" onclick="setHomeTab('routes',this)">
+        <span class="nav-link-icon">🗺️</span>
+        <span class="nav-link-label">Routes GPX</span>
+        <span class="nav-badge" id="routesCount">0</span>
+      </button>
+    </div>
+    <div class="nav-bottom">
+      <button class="nav-link"><span class="nav-link-icon">⚙️</span><span class="nav-link-label">Paramètres</span></button>
+    </div>
+  </nav>
+
+  <div class="home-main">
+    <div class="home-topbar">
+      <div class="home-tabs">
+        <button class="home-tab active" id="htab-races" onclick="setHomeTab('races',null,this)">Mes Courses</button>
+        <button class="home-tab" id="htab-training" onclick="setHomeTab('training',null,this)">Entraînements</button>
+        <button class="home-tab" id="htab-routes" onclick="setHomeTab('routes',null,this)">Routes GPX</button>
+      </div>
+      <div class="topbar-sep"></div>
+      <div class="import-btn-wrap" id="importBtnWrap">
+        <button class="import-btn" onclick="toggleImportMenu(event)">
+          ＋ Importer <span class="import-btn-sep"></span> ▾
+        </button>
+        <div class="import-dropdown" id="importDropdown">
+          <button class="import-opt" onclick="triggerGpxImport('race')">
+            <div class="import-opt-icon gpx">🏁</div>
+            <div><div class="import-opt-title">GPX de course</div><div class="import-opt-sub">Plan de rythme, waypoints, barrières</div></div>
+          </button>
+          <button class="import-opt" onclick="triggerGpxImport('training')">
+            <div class="import-opt-icon training">🏃</div>
+            <div><div class="import-opt-title">Session d'entraînement</div><div class="import-opt-sub">GPX avec FC, cadence, analyse effort</div></div>
+          </button>
+          <button class="import-opt" onclick="triggerGpxImport('route')">
+            <div class="import-opt-icon gpx">🗺️</div>
+            <div><div class="import-opt-title">Route GPX</div><div class="import-opt-sub">Visualiser un tracé et son profil</div></div>
+          </button>
+          <div class="import-sep"></div>
+          <button class="import-opt" onclick="loadSampleAndOpen()">
+            <div class="import-opt-icon sample">⚡</div>
+            <div><div class="import-opt-title" style="color:var(--muted)">Exemple — Verbier Trail 42K</div><div class="import-opt-sub">Tester l'app avec des données fictives</div></div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-content">
+      <div class="tab-panel active" id="panel-races">
+        <div class="section-label">Courses planifiées</div>
+        <div class="lib-grid" id="racesGrid"></div>
+        <div class="empty-state" id="racesEmpty">
+          <div class="empty-icon">🏁</div>
+          <div class="empty-title">Aucune course planifiée</div>
+          <div class="empty-sub">Importez un fichier GPX de course pour créer votre plan de rythme, gérer les waypoints et voir les barrières horaires.</div>
+        </div>
+      </div>
+      <div class="tab-panel" id="panel-training">
+        <div class="section-label">Sessions d'entraînement</div>
+        <div class="lib-grid" id="trainingGrid"></div>
+        <div class="empty-state" id="trainingEmpty">
+          <div class="empty-icon">🏃</div>
+          <div class="empty-title">Aucune session importée</div>
+          <div class="empty-sub">Importez vos GPX d'entraînement (fréquence cardiaque, cadence) pour analyser vos sorties.</div>
+        </div>
+      </div>
+      <div class="tab-panel" id="panel-routes">
+        <div class="section-label">Routes importées</div>
+        <div class="lib-grid" id="routesGrid"></div>
+        <div class="empty-state" id="routesEmpty">
+          <div class="empty-icon">🗺️</div>
+          <div class="empty-title">Aucune route GPX</div>
+          <div class="empty-sub">Importez n'importe quel fichier GPX pour visualiser le tracé et le profil d'élévation.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     APP SCREEN
+══════════════════════════════════ -->
+<div class="screen" id="appScreen">
+  <div class="app-topbar">
+    <button class="app-back-btn" onclick="goHome()">← Bibliothèque</button>
+    <div style="width:1px;height:16px;background:var(--border2)"></div>
+    <span class="app-topbar-title" id="appTopbarTitle">—</span>
+    <div class="topbar-sep"></div>
+    <span class="app-topbar-badge" id="appTopbarBadge">GPX</span>
+    <button class="app-topbar-action" onclick="saveCurrentSession()">💾 Sauvegarder</button>
+    <button class="app-topbar-action" onclick="exportPlanCsv()">📊 CSV</button>
+    <button class="app-topbar-action" onclick="exportPdf()">🖨️ PDF</button>
+  </div>
+
+  <div class="app-body">
+
+    <!-- ── Floating overlay panel ── -->
+    <div class="float-panel" id="floatPanel">
+
+      <!-- Collapse toggle tab -->
+      <button class="panel-collapse-btn" id="panelCollapseBtn" onclick="togglePanel()" title="Réduire">
+        <span id="panelCollapseIcon">‹</span>
+      </button>
+
+      <div class="float-panel-inner" id="floatPanelInner">
+
+        <!-- Header -->
+        <div class="fp-header">
+          <div class="fp-title-row">
+            <span class="fp-title" id="fpRaceName">Course summary</span>
+            <button class="fp-close" onclick="goHome()" title="Retour">✕</button>
+          </div>
+          <span class="fp-badge" id="appTopbarBadge">GPX Course</span>
+        </div>
+
+        <div class="fp-scroll">
+
+          <!-- Estimated finish -->
+          <div class="fp-section">
+            <div class="fp-section-label">ESTIMATED FINISH TIME</div>
+            <div class="fp-finish-time" id="finishTime">--h --m</div>
+
+            <!-- 3-zone effort slider -->
+            <div class="effort-slider-wrap">
+              <div class="effort-track-wrap">
+                <div class="effort-zone effort-zone-bon"></div>
+                <div class="effort-zone effort-zone-solide"></div>
+                <div class="effort-zone effort-zone-dur"></div>
+                <input type="range" id="effortSlider" min="-10" max="10" value="0" step="1" class="effort-range">
+              </div>
+              <div class="effort-zone-labels">
+                <span class="effort-lbl-bon">Good day</span>
+                <span class="effort-lbl-solide">Solid day</span>
+                <span class="effort-lbl-dur">Rough day</span>
+              </div>
+            </div>
+
+            <!-- Key stats -->
+            <div class="fp-stat fp-stat-clickable" onclick="document.getElementById('startTimeInline').showPicker?.() || document.getElementById('startTimeInline').focus()">
+              <span class="fp-stat-l">Race start</span>
+              <span class="fp-stat-v" style="display:flex;align-items:center;gap:6px;">
+                <span id="startDate">--</span>
+                <input type="time" id="startTimeInline" value="07:30"
+                  style="opacity:0;position:absolute;width:0;height:0;pointer-events:none;">
+                <span style="color:var(--orange);font-size:10px;cursor:pointer;">✎</span>
+              </span>
+            </div>
+            <div class="fp-stat"><span class="fp-stat-l">Estimated Time of Arrival</span><span class="fp-stat-v fp-orange" id="arrivalTime">--</span></div>
+            <div class="fp-stat"><span class="fp-stat-l">Distance</span><span class="fp-stat-v" id="totalDist">-- km</span></div>
+            <div class="fp-stat"><span class="fp-stat-l">Elevation gain</span><span class="fp-stat-v">
+              <span style="color:var(--green);font-size:10px;">↗</span> <span id="elevGain">-- m</span>
+            </span></div>
+            <div class="fp-stat"><span class="fp-stat-l">Elevation loss</span><span class="fp-stat-v">
+              <span style="color:var(--red);font-size:10px;">↘</span> <span id="elevLoss">-- m</span>
+            </span></div>
+          </div>
+
+          <!-- Pacing plan -->
+          <div class="fp-section fp-collapsible collapsed" id="secPacing">
+            <div class="fp-section-head" onclick="toggleSec('secPacing')">
+              <span class="fp-section-title">Pacing plan</span>
+              <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation()">
+                <!-- Editable target time: HH h MM m -->
+                <div class="pace-target-edit" id="paceTargetEdit">
+                  <input type="number" id="targetH" class="pace-t-inp" min="0" max="99" placeholder="--" title="Heures cible">
+                  <span class="pace-t-sep">h</span>
+                  <input type="number" id="targetM" class="pace-t-inp pace-t-min" min="0" max="59" placeholder="--" title="Minutes cible">
+                  <span class="pace-t-sep">m</span>
+                </div>
+                <span class="fp-chevron" id="chevron-secPacing" onclick="event.stopPropagation();toggleSec('secPacing')">∨</span>
+              </div>
+            </div>
+            <div class="fp-section-body" id="body-secPacing" style="max-height:0;opacity:0;margin-top:0;">
+              <div class="fp-row"><span class="fp-row-l">Moving time</span><span class="fp-row-v" id="movingTime">--:--</span></div>
+              <div class="fp-row"><span class="fp-row-l">Refueling stop</span><span class="fp-row-v" id="stopTimeDisplay">--</span></div>
+              <div class="fp-row"><span class="fp-row-l">Elapsed time</span><span class="fp-row-v" id="elapsedTime">--:--</span></div>
+              <div class="fp-row"><span class="fp-row-l">Moving Avg. Pace (min/km)</span><span class="fp-row-v" id="avgPace">--:--</span></div>
+              <div class="fp-row"><span class="fp-row-l">Elapsed Avg. Pace</span><span class="fp-row-v" id="elapsedPace">--:--</span></div>
+            </div>
+          </div>
+
+          <!-- Cut-off times -->
+          <div class="fp-section fp-collapsible collapsed" id="secCutoff">
+            <div class="fp-section-head" onclick="toggleSec('secCutoff')">
+              <span class="fp-section-title">Cut-off times</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button onclick="event.stopPropagation();openAddWpModal()" style="background:none;border:none;color:var(--orange);cursor:pointer;font-size:16px;line-height:1;">+</button>
+                <span class="fp-chevron" id="chevron-secCutoff">∨</span>
+              </div>
+            </div>
+            <div class="fp-section-body" id="body-secCutoff" style="max-height:0;opacity:0;margin-top:0;">
+              <div id="cutoffList"><div style="padding:10px 0;color:var(--muted);font-size:11px;text-align:center;">Add cut-offs to track your buffer at each checkpoint.</div></div>
+            </div>
+          </div>
+
+          <!-- Waypoints -->
+          <div class="fp-section fp-collapsible collapsed" id="secWp">
+            <div class="fp-section-head" onclick="toggleSec('secWp')">
+              <span class="fp-section-title">Waypoints</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button onclick="event.stopPropagation();openAddWpModal()" style="background:none;border:none;color:var(--orange);cursor:pointer;font-size:16px;line-height:1;">+</button>
+                <span class="fp-chevron" id="chevron-secWp">∨</span>
+              </div>
+            </div>
+            <div class="fp-section-body" id="body-secWp" style="max-height:0;opacity:0;margin-top:0;">
+              <div class="wp-list" id="wpList"><div style="padding:10px 0;color:var(--muted);font-size:11px;text-align:center;">Aucun waypoint</div></div>
+            </div>
+          </div>
+
+
+        </div><!-- /fp-scroll (course summary) -->
+      </div><!-- /float-panel-inner (course summary) -->
+
+      <!-- ════ SEGMENT PANEL (replaces course summary) ════ -->
+      <div class="seg-panel-inner" id="segPanel" style="display:none;flex-direction:column;position:absolute;inset:0;z-index:2;border-radius:14px;overflow:hidden;">
+
+        <!-- Header -->
+        <div class="fp-header" style="flex-shrink:0;">
+          <div class="fp-title-row">
+            <span class="fp-title" id="segTitle">Segment 1</span>
+            <button class="fp-close" onclick="closeSegPanel()" title="Retour">✕</button>
+          </div>
+
+          <!-- Distance big -->
+          <div class="fp-finish-time" id="segDist" style="margin-bottom:6px;">-- km</div>
+
+          <!-- Badges row — flex with wrap, aligned -->
+          <div class="seg-badges" id="segBadges">
+            <span class="seg-badge seg-badge-terrain" id="segBadgeTerrain">—</span>
+            <span class="seg-badge seg-badge-info" id="segBadgeInfo">—</span>
+          </div>
+
+          <!-- D+/D-/ratio -->
+          <div class="seg-stats" id="segStats">
+            <span class="seg-stat">↗ <span class="sv" id="segGain">—</span></span>
+            <span class="seg-stat">↘ <span class="sv" id="segLoss">—</span></span>
+            <span class="seg-stat"><span class="sv" id="segRatio">—</span> m/km</span>
+          </div>
+        </div>
+
+        <div class="fp-scroll" style="flex:1;overflow-y:auto;">
+
+          <!-- ETA -->
+          <div class="fp-section">
+            <div class="fp-section-label">Arrivée estimée</div>
+            <div class="seg-eta-block">
+              <div>
+                <div class="seg-eta-time" id="segEta">—</div>
+                <div class="seg-eta-sub" id="segEtaSub">—</div>
+              </div>
+              <div class="seg-eta-right">
+                <div class="seg-eta-dur" id="segDur">—</div>
+                <div class="seg-eta-sub">durée estimée</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Effort local -->
+          <div class="fp-section">
+            <div class="fp-section-label">Effort sur ce segment</div>
+            <div class="seg-effort-wrap">
+              <div class="seg-effort-track">
+                <div class="seg-ezone seg-ezone-bon"></div>
+                <div class="seg-ezone seg-ezone-sol"></div>
+                <div class="seg-ezone seg-ezone-dur"></div>
+                <div class="seg-effort-border"></div>
+                <div class="seg-effort-tick" style="left:calc(33.33% - .5px)"></div>
+                <div class="seg-effort-tick" style="left:calc(66.67% - .5px)"></div>
+                <input type="range" class="seg-effort-range" id="segEffortSlider" min="-10" max="10" value="0" step="1" oninput="onSegEffort(this.value)">
+              </div>
+              <div class="seg-effort-labels">
+                <span style="color:#3FB950;">Good day</span>
+                <span style="color:#E3B341;">Solid day</span>
+                <span style="color:#F85149;">Rough day</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Technicité -->
+          <div class="fp-section">
+            <div class="fp-section-label">Technicité du terrain</div>
+            <div class="techni-btns" id="techniBtns">
+              <button class="tb sel-easy" onclick="setTechni(0)">Roulant</button>
+              <button class="tb" onclick="setTechni(1)">Technique</button>
+              <button class="tb" onclick="setTechni(2)">Alpin</button>
+              <button class="tb" onclick="setTechni(3)">Extrême</button>
+            </div>
+            <div class="techni-hint" id="techniHint">→ aucune pénalité</div>
+          </div>
+
+          <!-- Coefficients (collapsible) -->
+          <div class="seg-subsec" id="subCoeff">
+            <div class="seg-subsec-head" onclick="toggleSubsec('subCoeff')">
+              <span class="seg-subsec-title">Coefficients</span>
+              <div class="seg-subsec-right">
+                <span class="seg-subsec-summary" id="coeffSummary">×1.00</span>
+                <span class="seg-subsec-chevron">∨</span>
+              </div>
+            </div>
+            <div class="seg-subsec-body" id="body-subCoeff">
+              <div class="seg-subsec-inner">
+                <div class="coeff-grid">
+                  <div class="coeff-card">
+                    <div class="coeff-label">Ratio D+ global</div>
+                    <div class="coeff-val" id="cv1">1.00×</div>
+                    <input type="range" min="80" max="150" value="100" step="1" oninput="onCoeff()" id="cs1" style="width:100%;accent-color:#FF6B35;">
+                    <div class="coeff-hint" id="ch1">—</div>
+                  </div>
+                  <div class="coeff-card">
+                    <div class="coeff-label">Régularité pente</div>
+                    <div class="coeff-val" id="cv2">1.00×</div>
+                    <input type="range" min="90" max="130" value="100" step="1" oninput="onCoeff()" id="cs2" style="width:100%;accent-color:#FF6B35;">
+                    <div class="coeff-hint">variance du dénivelé</div>
+                  </div>
+                  <div class="coeff-card">
+                    <div class="coeff-label">Arrêts ravito</div>
+                    <div class="coeff-val" id="cv3">+0 min</div>
+                    <input type="range" min="0" max="20" value="0" step="1" oninput="onCoeff()" id="cs3" style="width:100%;accent-color:#FF6B35;">
+                    <div class="coeff-hint" id="ch3">—</div>
+                  </div>
+                  <div class="coeff-card">
+                    <div class="coeff-label">Fatigue cumulée</div>
+                    <div class="coeff-val" id="cv4">1.00×</div>
+                    <input type="range" min="100" max="140" value="100" step="1" oninput="onCoeff()" id="cs4" style="width:100%;accent-color:#FF6B35;">
+                    <div class="coeff-hint" id="ch4">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Détails pacing (collapsible) -->
+          <div class="seg-subsec" id="subPacing">
+            <div class="seg-subsec-head" onclick="toggleSubsec('subPacing')">
+              <span class="seg-subsec-title">Détails du pacing</span>
+              <div class="seg-subsec-right">
+                <span class="seg-subsec-summary" id="pacingSummary">—</span>
+                <span class="seg-subsec-chevron">∨</span>
+              </div>
+            </div>
+            <div class="seg-subsec-body" id="body-subPacing">
+              <div class="seg-subsec-inner">
+                <div class="seg-row"><span class="seg-row-l">Moving time</span><span class="seg-row-v" id="srMoving">—</span></div>
+                <div class="seg-row"><span class="seg-row-l">Arrêts</span><span class="seg-row-v" id="srStops">—</span></div>
+                <div class="seg-row"><span class="seg-row-l">Temps total</span><span class="seg-row-v or" id="srTotal">—</span></div>
+                <div class="seg-row"><span class="seg-row-l">Allure mouvement</span><span class="seg-row-v" id="srPace">—</span></div>
+                <div class="seg-row"><span class="seg-row-l">Allure elapsed</span><span class="seg-row-v" id="srElapsed">—</span></div>
+                <div class="seg-row"><span class="seg-row-l">Vitesse ascensionnelle</span><span class="seg-row-v gr" id="srVam">—</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /fp-scroll seg -->
+
+        <!-- Navigation segments -->
+        <div class="seg-nav">
+          <button class="seg-nav-btn" id="segPrevBtn" onclick="navigateSegPanel(-1)">← Prec.</button>
+          <span class="seg-nav-lbl" id="segNavLbl">Seg. 1 / 4</span>
+          <button class="seg-nav-btn" id="segNextBtn" onclick="navigateSegPanel(1)">Suiv. →</button>
+        </div>
+
+      </div><!-- /seg-panel-inner -->
+    </div><!-- /float-panel -->
+
+    <!-- ── Map fills the whole area ── -->
+    <div class="map-wrap" id="mapWrap">
+
+      <!-- Map -->
+      <div class="map-area" id="mapArea">
+        <div id="leafletMap" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;"></div>
+        <div class="map-controls" id="mapControls" style="z-index:10;">
+
+          <!-- Recentrer -->
+          <button class="mctrl-icon-btn" onclick="fitMapToTrack()" title="Recentrer">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2" fill="currentColor"/><line x1="10" y1="1" x2="10" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="15.5" x2="10" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="10" x2="4.5" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="15.5" y1="10" x2="19" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+
+          <!-- Fond de carte -->
+          <div class="mctrl-group" id="mctrGrpMap">
+            <button class="mctrl-icon-btn" title="Fond de carte">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M2 5l6-3 4 2 6-3v13l-6 3-4-2-6 3V5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><line x1="8" y1="2" x2="8" y2="15" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2,2"/><line x1="12" y1="4" x2="12" y2="17" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2,2"/></svg>
+            </button>
+            <div class="mctrl-flyout">
+              <div class="mctrl-flyout-label">Fond de carte</div>
+              <button class="mctrl-opt" id="btnLayer_osm" onclick="setMapLayer('osm')">
+                <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M2 5l6-3 4 2 6-3v13l-6 3-4-2-6 3V5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                OSM
+              </button>
+              <button class="mctrl-opt" id="btnLayer_topo" onclick="setMapLayer('topo')">
+                <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M2 17L8 6l4 5 3-3 3 9H2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                Topo
+              </button>
+              <button class="mctrl-opt" id="btnLayer_satellite" onclick="setMapLayer('satellite')">
+                <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/><path d="M4 10 Q10 5 16 10 Q10 15 4 10" stroke="currentColor" stroke-width="1.2" fill="none"/><line x1="10" y1="2.5" x2="10" y2="17.5" stroke="currentColor" stroke-width="1.2"/></svg>
+                Satellite
+              </button>
+              <div class="mctrl-flyout-sep"></div>
+              <button class="mctrl-opt" id="btnLayer_swisstopo" onclick="setMapLayer('swisstopo')">
+                <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M10 5v10M5 10h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+                SwissTopo
+              </button>
+              <button class="mctrl-opt" id="btnLayer_swissimage" onclick="setMapLayer('swissimage')" style="display:none">SwissImage</button>
+              <div class="mctrl-flyout-sep"></div>
+              <!-- Opacity slider -->
+              <div class="mctrl-opacity-row">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.3"/><path d="M7 1.5 A5.5 5.5 0 0 1 7 12.5 Z" fill="currentColor"/></svg>
+                <span>Opacité</span>
+                <input type="range" id="mapOpacitySlider" min="0" max="100" value="100"
+                  oninput="setMapOpacity(this.value)">
+                <span id="mapOpacityVal">100%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Couleur du tracé -->
+          <div class="mctrl-group" id="mctrGrpTrack">
+            <button class="mctrl-icon-btn" title="Couleur du tracé">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <path d="M3 17 C5 12 8 8 10 6 C12 4 14 4 15 6 C16 8 14 11 12 13 C10 15 8 16 10 17" stroke="#FF6B35" stroke-width="2" stroke-linecap="round" fill="none"/>
+                <circle cx="15" cy="15" r="3" fill="none" stroke="currentColor" stroke-width="1.3"/>
+                <circle cx="15" cy="15" r="1.2" fill="currentColor"/>
+              </svg>
+            </button>
+            <div class="mctrl-flyout">
+              <div class="mctrl-flyout-label">Couleur du tracé</div>
+              <button class="mctrl-opt active" id="btnTrack_solid" onclick="setTrackColor('solid')">
+                <svg width="28" height="8" viewBox="0 0 28 8"><rect x="0" y="2" width="28" height="4" rx="2" fill="#FF6B35"/></svg>
+                Couleur unique
+              </button>
+              <button class="mctrl-opt" id="btnTrack_altitude" onclick="setTrackColor('altitude')">
+                <svg width="28" height="8" viewBox="0 0 28 8">
+                  <defs><linearGradient id="galt" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%"   stop-color="#0000ff"/>
+                    <stop offset="17%"  stop-color="#0000ff"/>
+                    <stop offset="33%"  stop-color="#00ffff"/>
+                    <stop offset="50%"  stop-color="#00ff00"/>
+                    <stop offset="67%"  stop-color="#ffff00"/>
+                    <stop offset="83%"  stop-color="#ff8000"/>
+                    <stop offset="100%" stop-color="#ff0000"/>
+                  </linearGradient></defs>
+                  <rect x="0" y="2" width="28" height="4" rx="2" fill="url(#galt)"/>
+                </svg>
+                Par altitude
+              </button>
+              <button class="mctrl-opt" id="btnTrack_slope" onclick="setTrackColor('slope')">
+                <svg width="28" height="8" viewBox="0 0 28 8">
+                  <defs><linearGradient id="gslope" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%"   stop-color="#0D1B4B"/>
+                    <stop offset="14%"  stop-color="#01579B"/>
+                    <stop offset="28%"  stop-color="#0288D1"/>
+                    <stop offset="42%"  stop-color="#29B6F6"/>
+                    <stop offset="50%"  stop-color="#66BB6A"/>
+                    <stop offset="62%"  stop-color="#FB8C00"/>
+                    <stop offset="75%"  stop-color="#E53935"/>
+                    <stop offset="88%"  stop-color="#B71C1C"/>
+                    <stop offset="100%" stop-color="#7B1FA2"/>
+                  </linearGradient></defs>
+                  <rect x="0" y="2" width="28" height="4" rx="2" fill="url(#gslope)"/>
+                </svg>
+                Par pente
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Floating elevation panel (bottom) ── -->
+      <div class="elev-float" id="elevFloat">
+
+        <!-- Drag handle -->
+        <div class="elev-float-handle" id="elevHandle">
+          <div class="elev-handle-pill"></div>
+        </div>
+
+        <!-- Top bar: visible also when collapsed -->
+        <div class="elev-float-bar" id="elevFloatBar">
+
+          <!-- Left: Elevation/Table toggles — icon only, fixed square -->
+          <div class="elev-view-tabs">
+            <button class="elev-view-btn active" id="btnViewElev" onclick="switchBottomView('elev',this)" title="Elevation">
+              <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><polyline points="1,11 4,6 7,8 10,3 13,5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span>Elevation</span>
+            </button>
+            <button class="elev-view-btn" id="btnViewTable" onclick="switchBottomView('table',this)" title="Table">
+              <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><line x1="1" y1="5" x2="13" y2="5" stroke="currentColor" stroke-width="1.1"/><line x1="1" y1="9" x2="13" y2="9" stroke="currentColor" stroke-width="1.1"/><line x1="5" y1="5" x2="5" y2="13" stroke="currentColor" stroke-width="1.1"/></svg>
+              <span>Table</span>
+            </button>
+          </div>
+
+          <!-- Centre: segment nav — absolutely centred in the bar -->
+          <div class="elev-seg-nav" id="elevSegNav">
+            <div class="elev-seg-nav-row">
+              <button class="elev-seg-nav-btn" id="btnSegPrev" onclick="navigateSeg(-1)" disabled>
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><polyline points="9,2 5,7 9,12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <span class="elev-seg-label" id="elevSegLabel">Entire Race</span>
+              <button class="elev-seg-nav-btn" id="btnSegNext" onclick="navigateSeg(1)">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><polyline points="5,2 9,7 5,12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="elev-seg-subtitle" id="elevSegSubtitle"></div>
+          </div>
+
+          <!-- Right: type filter toggle buttons -->
+          <div class="elev-bar-right">
+            <div class="elev-type-filters">
+              <button class="elev-type-btn active" id="ftype-waypoint" onclick="toggleTypeFilter('waypoint')">
+                <svg width="12" height="12" viewBox="0 0 18 18" fill="none"><path d="M9 2C5.7 2 3 4.7 3 8C3 12.5 9 17 9 17C9 17 15 12.5 15 8C15 4.7 12.3 2 9 2Z" stroke="currentColor" stroke-width="1.4" fill="currentColor" fill-opacity="0.2"/><circle cx="9" cy="8" r="2" fill="currentColor"/></svg>
+                <span>WP</span>
+              </button>
+              <button class="elev-type-btn active" id="ftype-refuel-light" onclick="toggleTypeFilter('refuel-light')">
+                <svg width="12" height="12" viewBox="0 0 18 18" fill="none"><path d="M9 2.5C9 2.5 5 8 5 11.5C5 13.7 6.8 15.5 9 15.5C11.2 15.5 13 13.7 13 11.5C13 8 9 2.5 9 2.5Z" stroke="currentColor" stroke-width="1.4" fill="currentColor" fill-opacity="0.25"/></svg>
+                <span>Léger</span>
+              </button>
+              <button class="elev-type-btn active" id="ftype-refuel-full" onclick="toggleTypeFilter('refuel-full')">
+                <svg width="12" height="12" viewBox="0 0 18 18" fill="none"><path d="M6.5 2.5C6.5 2.5 4 6.5 4 9C4 10.7 5.1 12 6.5 12C7.9 12 9 10.7 9 9C9 6.5 6.5 2.5 6.5 2.5Z" stroke="currentColor" stroke-width="1.3" fill="currentColor" fill-opacity="0.2"/><line x1="12.5" y1="3" x2="12.5" y2="15" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="11" y1="3" x2="11" y2="6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="14" y1="3" x2="14" y2="6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M11 6 Q12.5 7.5 14 6" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>
+                <span>Complet</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Elevation chart (shown by default) -->
+        <div class="elev-chart-wrap" id="elevChartWrap">
+          <svg id="elevSvg" style="width:100%;height:100%;display:block;cursor:crosshair;">
+            <text x="50%" y="50%" text-anchor="middle" fill="#8B949E" font-size="13" font-family="-apple-system,Segoe UI,sans-serif">Importez un fichier GPX pour voir le profil</text>
+          </svg>
+          <div class="elev-hover" id="elevHover"></div>
+        </div>
+
+        <!-- Table view (hidden by default, shown inside bottom panel) -->
+        <div class="table-view" id="tableView">
+          <table><thead><tr><th>#</th><th>Point</th><th>km</th><th>Élév.</th><th>D+</th><th>Durée seg.</th><th>ETA</th><th>Allure</th><th>Type</th></tr></thead><tbody id="segTableBody"></tbody></table>
+        </div>
+
+        <!-- Legend (only when elevation shown) -->
+        <div class="elev-legend" id="elevLegend">
+          <span class="elev-legend-item"><span class="elev-legend-line" style="background:var(--orange);"></span>Elevation</span>
+          <span class="elev-legend-item"><span class="elev-legend-line" style="background:#58A6FF;"></span>Estimated pace</span>
+        </div>
+
+      </div><!-- /elev-float -->
+
+    </div><!-- /map-wrap -->
+
+  </div><!-- /app-body -->
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="addWpModal">
+  <div class="modal">
+    <h3>Ajouter un point de parcours</h3>
+    <div class="modal-field"><label>Nom</label><input type="text" id="wpNameInput" value="Nouveau point"></div>
+    <div class="modal-field"><label>Position (km)</label><input type="number" id="wpKmInput" min="0" step="0.1" value="10"></div>
+    <div class="modal-field"><label>Type</label><select id="wpTypeInput"><option value="waypoint">Waypoint</option><option value="refuel-light">Ravito léger (liquide)</option><option value="refuel-full">Ravito complet (solide + liquide)</option></select></div>
+    <div class="modal-field"><label>Notes</label><input type="text" id="wpNotesInput" placeholder="Eau disponible…"></div>
+    <div class="modal-actions"><button class="btn-cancel" onclick="closeAddWpModal()">Annuler</button><button class="btn-primary" onclick="confirmAddWp()">Ajouter</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="saveSessionModal">
+  <div class="modal">
+    <h3>💾 Sauvegarder dans la bibliothèque</h3>
+    <div class="modal-field"><label>Nom</label><input type="text" id="sessionNameInput"></div>
+    <div class="modal-field"><label>Date de course</label><input type="date" id="sessionDateInput"></div>
+    <div class="modal-field"><label>Type</label><select id="sessionTypeInput"><option value="race">🏁 Course</option><option value="training">🏃 Entraînement</option><option value="route">🗺️ Route GPX</option></select></div>
+    <div class="modal-field"><label>Notes</label><textarea id="sessionNotesInput" placeholder="Stratégie, objectif…"></textarea></div>
+    <div class="modal-actions"><button class="btn-cancel" onclick="document.getElementById('saveSessionModal').classList.remove('show')">Annuler</button><button class="btn-primary" onclick="confirmSaveSession()">Sauvegarder</button></div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+<input type="file" accept=".gpx" id="gpxFileInput">
+
+<script>
+// ══════════════════════════════════════════
+// SLIDER FILL (orange left portion of track)
+// ══════════════════════════════════════════
+function updateSliderFill(input) {
+  const min = +input.min || 0;
+  const max = +input.max || 100;
+  const val = +input.value;
+  const pct = ((val - min) / (max - min)) * 100;
+  input.style.background = `linear-gradient(to right, var(--orange) ${pct}%, var(--border2) ${pct}%)`;
+}
+
+function initAllSliderFills() {
+  document.querySelectorAll('input[type=range]').forEach(inp => {
+    updateSliderFill(inp);
+    inp.addEventListener('input', () => updateSliderFill(inp));
+  });
+}
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+const isElectron = typeof window.electronAPI !== 'undefined';
+let gpx=null, waypoints=[], elevView='full', currentView='map';
+let stopMin=10, startTimeVal='07:30';
+let currentFileType='race';
+let library={races:[],training:[],routes:[]};
+let pendingImportType=null;
+
+// ══════════════════════════════════════════
+// PANEL COLLAPSE + SECTION COLLAPSE
+// ══════════════════════════════════════════
+function togglePanel(){
+  const panel=document.getElementById('floatPanel');
+  const icon=document.getElementById('panelCollapseIcon');
+  const collapsed=panel.classList.toggle('collapsed');
+  icon.textContent=collapsed?'›':'‹';
+  if(leafletMap) setTimeout(()=>leafletMap.invalidateSize(),320);
+}
+
+function toggleSec(secId){
+  const sec=document.getElementById(secId);
+  const body=document.getElementById('body-'+secId);
+  const chevron=document.getElementById('chevron-'+secId);
+  const willOpen = sec.classList.contains('collapsed');
+  sec.classList.toggle('collapsed');
+  if(willOpen){
+    // Opening: measure content height and animate to it
+    body.style.maxHeight = body.scrollHeight + 'px';
+    body.style.opacity = '1';
+    body.style.marginTop = '10px';
+    if(chevron) chevron.textContent = '∧';
+  } else {
+    // Closing
+    body.style.maxHeight = '0';
+    body.style.opacity = '0';
+    body.style.marginTop = '0';
+    if(chevron) chevron.textContent = '∨';
+  }
+}
+
+// No-op: sections start collapsed with inline styles already set
+function initSections(){}
+
+// ══════════════════════════════════════════
+// SCREEN NAV
+// ══════════════════════════════════════════
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function goHome(){ showScreen('homeScreen'); refreshLibrary(); }
+
+// ══════════════════════════════════════════
+// HOME TABS
+// ══════════════════════════════════════════
+function setHomeTab(tab, navBtn, tabBtn){
+  document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+  if(navBtn) navBtn.classList.add('active');
+  else { const matching=[...document.querySelectorAll('.nav-link')].find(l=>l.getAttribute('onclick')?.includes(`'${tab}'`)); if(matching) matching.classList.add('active'); }
+  document.querySelectorAll('.home-tab').forEach(t=>t.classList.remove('active'));
+  const topTab=tabBtn||document.getElementById('htab-'+tab);
+  if(topTab) topTab.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+tab)?.classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// IMPORT DROPDOWN
+// ══════════════════════════════════════════
+function toggleImportMenu(e){ e.stopPropagation(); document.getElementById('importDropdown').classList.toggle('open'); }
+document.addEventListener('click',()=>document.getElementById('importDropdown').classList.remove('open'));
+
+function triggerGpxImport(type){
+  document.getElementById('importDropdown').classList.remove('open');
+  pendingImportType=type;
+  if(isElectron){
+    const fn=type==='training'?window.electronAPI.importTraining:window.electronAPI.openGpxDialog;
+    fn().then(r=>{ if(r){ parseGPX(r.content,r.name,type==='training'); currentFileType=type; showScreen('appScreen'); }});
+  } else {
+    document.getElementById('gpxFileInput').click();
+  }
+}
+function loadSampleAndOpen(){
+  document.getElementById('importDropdown').classList.remove('open');
+  currentFileType='race'; pendingImportType='race';
+  loadSampleData(); showScreen('appScreen');
+}
+
+document.getElementById('gpxFileInput').addEventListener('change',e=>{
+  if(!e.target.files[0])return;
+  const f=e.target.files[0], isT=pendingImportType==='training';
+  currentFileType=pendingImportType||'route';
+  const reader=new FileReader();
+  reader.onload=ev=>{ parseGPX(ev.target.result,f.name.replace('.gpx',''),isT); showScreen('appScreen'); };
+  reader.readAsText(f); e.target.value=''; pendingImportType=null;
+});
+
+// ══════════════════════════════════════════
+// GPX PARSING
+// ══════════════════════════════════════════
+function parseGPX(text,fallbackName,isTraining=false){
+  try{
+    const parser=new DOMParser(), doc=parser.parseFromString(text,'text/xml');
+    if(doc.querySelector('parsererror')) throw new Error('XML invalide');
+    const trkpts=doc.querySelectorAll('trkpt');
+    if(!trkpts.length) throw new Error('Aucun point trkpt trouvé');
+    const points=[];
+    trkpts.forEach(pt=>{
+      const lat=parseFloat(pt.getAttribute('lat')),lon=parseFloat(pt.getAttribute('lon'));
+      const ele=parseFloat(pt.querySelector('ele')?.textContent||0);
+      const hr=parseInt(pt.querySelector('heartrate,hr')?.textContent||0)||null;
+      const cad=parseInt(pt.querySelector('cadence,cad')?.textContent||0)||null;
+      if(!isNaN(lat)&&!isNaN(lon)) points.push({lat,lon,ele:isNaN(ele)?0:ele,hr,cad});
+    });
+    const name=doc.querySelector('trk > name')?.textContent||doc.querySelector('metadata > name')?.textContent||fallbackName;
+    processTrack(points,name.trim(),isTraining);
+  }catch(e){ notify('GPX invalide: '+e.message,'err'); }
+}
+
+// ══════════════════════════════════════════
+// TRACK PROCESSING
+// ══════════════════════════════════════════
+function haversine(a,b,c,d){const R=6371000,r=Math.PI/180,dL=(c-a)*r,dO=(d-b)*r,x=Math.sin(dL/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+function processTrack(points,name,isTraining=false){
+  // Smooth elevation with 10-pt moving avg (window of 5 each side)
+  // Larger window filters GPS noise while preserving real D+/D-
+  const sm=points.map((p,i)=>{
+    const w=points.slice(Math.max(0,i-5),i+6);
+    return{...p,ele:w.reduce((s,x)=>s+x.ele,0)/w.length};
+  });
+
+  // Compute distances and cumDist from smoothed points
+  let totalDist=0; const cumDist=[0];
+  for(let i=1;i<sm.length;i++){
+    totalDist+=haversine(sm[i-1].lat,sm[i-1].lon,sm[i].lat,sm[i].lon);
+    cumDist.push(totalDist);
+  }
+
+  // Compute D+/D- on smoothed points without threshold (window filters noise)
+  let elevGain=0, elevLoss=0;
+  for(let i=1;i<sm.length;i++){
+    const de=sm[i].ele-sm[i-1].ele;
+    if(de>0) elevGain+=de; else elevLoss+=Math.abs(de);
+  }
+  // ── Detect Switzerland (before gpx assignment) ───────────────
+  const lats=sm.map(p=>p.lat), lons=sm.map(p=>p.lon);
+  const centerLat=(Math.min(...lats)+Math.max(...lats))/2;
+  const centerLon=(Math.min(...lons)+Math.max(...lons))/2;
+  const inSwitzerland=centerLat>=45.4&&centerLat<=48.2&&centerLon>=5.1&&centerLon<=11.5;
+
+  gpx={points:sm,name,totalDist,elevGain,elevLoss,cumDist,isTraining,inSwitzerland};
+  const km=totalDist/1000;
+  waypoints=[
+    {name:'Départ',km:0,type:'start',notes:''},
+    {name:'Ravitaillement 1',km:+(km*0.35).toFixed(1),type:'refuel-light',notes:''},
+    {name:'Point haut',km:+(km*0.6).toFixed(1),type:'waypoint',notes:''},
+    {name:'Ravitaillement 2',km:+(km*0.75).toFixed(1),type:'refuel-full',notes:''},
+    {name:'Arrivée',km:+km.toFixed(1),type:'end',notes:''},
+  ];
+  const badge=isTraining?'Entraînement':'Course GPX';
+  document.getElementById('fpRaceName').textContent=name;
+  document.getElementById('appTopbarTitle').textContent=name;
+  document.getElementById('appTopbarBadge').textContent=badge;
+  document.getElementById('mapControls').style.display='flex';
+  document.getElementById('totalDist').textContent=(totalDist/1000).toFixed(2)+' km';
+  document.getElementById('elevGain').textContent=Math.round(elevGain)+' m';
+  document.getElementById('elevLoss').textContent=Math.round(elevLoss)+' m';
+  computeBasePaceFromGpx();
+  computeStats();
+  updateSegNav();
+  // Init Leaflet if needed, then draw
+  if (!leafletMap) {
+    initLeafletMap(); // drawRoute() called inside once Leaflet loads
+  } else {
+    // Auto SwissTopo if in Switzerland
+    applyTileLayer(gpx.inSwitzerland ? 'swisstopo' : 'osm');
+    drawRoute();
+  }
+  drawElevation(); renderWaypoints();
+  notify('✓ '+name+' · '+(totalDist/1000).toFixed(1)+' km','ok');
+}
+
+// ══════════════════════════════════════════
+// STATS
+// ══════════════════════════════════════════
+// BASE_PACE_SOLIDE is computed from the GPX once loaded
+// Default fallback: 6:30/km
+let BASE_PACE_SOLIDE = 6.5;
+
+function computeBasePaceFromGpx(){
+  if(!gpx) return;
+  // Naismith's rule approximation for trail:
+  // base flat pace 6:00/km + 1min per 100m D+
+  const dk = gpx.totalDist / 1000;
+  const dPlus = gpx.elevGain;
+  const flatTime = dk * 6.0;          // min at 6:00/km flat
+  const climbTime = dPlus / 100;      // 1 min per 100m D+
+  BASE_PACE_SOLIDE = (flatTime + climbTime) / dk;
+}
+
+function getEffortMultiplier() {
+  const v = parseInt(document.getElementById('effortSlider').value);
+  return 1 + v / 100;
+}
+
+function fmtPace(m){const mi=Math.floor(m),s=Math.round((m-mi)*60);return mi+':'+String(s).padStart(2,'0');}
+function fmtDuration(m){const h=Math.floor(m/60),mm=Math.round(m%60);return h===0?mm+'min':h+'h'+String(mm).padStart(2,'0');}
+function fmtTime(base,add){const[bh,bm]=base.split(':').map(Number),t=bh*60+bm+add;return Math.floor(t/60)%24+'h'+String(Math.round(t%60)).padStart(2,'0');}
+
+function computeStats(){
+  if(!gpx)return;
+  const dk = gpx.totalDist/1000;
+  const mult = getEffortMultiplier();
+  const bp = BASE_PACE_SOLIDE * mult;
+  const mv = dk * bp;
+  const tot = mv + stopMin;
+  const h=Math.floor(tot/60), m=Math.round(tot%60);
+
+  document.getElementById('finishTime').textContent = h+'h '+String(m).padStart(2,'0')+'m';
+  document.getElementById('movingTime').textContent = fmtDuration(mv);
+  document.getElementById('stopTimeDisplay').textContent = stopMin+' min';
+  document.getElementById('avgPace').textContent = fmtPace(bp);
+  document.getElementById('elapsedPace').textContent = fmtPace(tot/dk);
+  const elEl=document.getElementById('elapsedTime');
+  if(elEl) elEl.textContent=fmtDuration(tot);
+
+  // Race start display (editable)
+  const [sh,sm2]=startTimeVal.split(':').map(Number);
+  const sd=new Date(); sd.setHours(sh,sm2,0);
+  document.getElementById('startDate').textContent =
+    sd.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}) + ' · ' + startTimeVal.replace(':','h');
+
+  document.getElementById('arrivalTime').textContent=fmtTime(startTimeVal,tot);
+
+  // Pacing plan target = total time at Solid effort (mult=1.0)
+  const solidTot = gpx.totalDist/1000 * BASE_PACE_SOLIDE + stopMin;
+  const th = Math.floor(solidTot/60), tm = Math.round(solidTot%60);
+  const hInp = document.getElementById('targetH');
+  const mInp = document.getElementById('targetM');
+  // Only update inputs if user isn't currently editing them
+  if(hInp && !hInp.matches(':focus') && !mInp.matches(':focus')){
+    hInp.value = th;
+    mInp.value = String(tm).padStart(2,'0');
+  }
+
+  // Colour finish time by zone
+  const v = parseInt(document.getElementById('effortSlider').value);
+  document.getElementById('finishTime').style.color = v < -3 ? 'var(--green)' : v > 3 ? 'var(--red)' : 'var(--orange)';
+
+  renderCutoffs();
+  if(bottomView === 'table') buildTable();
+}
+
+function getBasePace(){ return BASE_PACE_SOLIDE * getEffortMultiplier(); }
+
+// ── Editable target time inputs ────────────────────────────
+function applyTargetTime(){
+  if(!gpx) return;
+  const hInp = document.getElementById('targetH');
+  const mInp = document.getElementById('targetM');
+  const h = parseInt(hInp.value) || 0;
+  const m = parseInt(mInp.value) || 0;
+  const totalMin = h * 60 + m;
+  if(totalMin < 1) return; // ignore invalid
+  const dk = gpx.totalDist / 1000;
+  // Derive new Solid pace from target (subtract fixed stopMin)
+  const movingMin = Math.max(1, totalMin - stopMin);
+  BASE_PACE_SOLIDE = movingMin / dk;
+  computeStats();
+  drawElevation();
+}
+
+// Auto-advance: typing 2 digits in hours jumps to minutes
+document.getElementById('targetH').addEventListener('input', function(){
+  // Clamp
+  if(this.value.length >= 2 || parseInt(this.value) > 9){
+    document.getElementById('targetM').focus();
+    document.getElementById('targetM').select();
+  }
+});
+// Apply on blur or Enter for either field
+['targetH','targetM'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('blur', applyTargetTime);
+  el.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ el.blur(); }
+    // Minutes: clamp 0-59 as user types
+    if(id === 'targetM' && e.key !== 'Backspace' && e.key !== 'Tab'){
+      const next = parseInt(el.value + e.key);
+      if(!isNaN(next) && next > 59){ e.preventDefault(); el.value = 59; applyTargetTime(); }
+    }
+  });
+});
+
+// ── Effort slider ───────────────────────────────────────────
+document.getElementById('effortSlider').addEventListener('input', function(){
+  computeStats(); drawElevation();
+});
+
+// ── Inline race start time ──────────────────────────────────
+// Inline race start time — hidden input triggers on change
+document.getElementById('startTimeInline').addEventListener('change', function(){
+  startTimeVal = this.value;
+  document.getElementById('startTime') && (document.getElementById('startTime').value = this.value);
+  computeStats();
+});
+// Also keep old startTime input in sync if it exists
+const _oldStartTime = document.getElementById('startTime');
+if(_oldStartTime) _oldStartTime.addEventListener('change', function(){
+  startTimeVal = this.value;
+  document.getElementById('startTimeInline').value = this.value;
+  computeStats();
+});
+
+// ══════════════════════════════════════════
+// WAYPOINTS
+// ══════════════════════════════════════════
+function wpIconSvg(type){
+  if(type==='start')
+    return`<svg viewBox="0 0 18 18" fill="none" width="13" height="13"><circle cx="9" cy="9" r="3.5" fill="#3FB950"/><circle cx="9" cy="9" r="6.5" stroke="#3FB950" stroke-width="1.2" stroke-dasharray="2.5 2"/></svg>`;
+  if(type==='end')
+    return`<svg viewBox="0 0 18 18" fill="none" width="13" height="13"><line x1="5" y1="3" x2="5" y2="15" stroke="#F85149" stroke-width="1.3" stroke-linecap="round"/><rect x="5" y="3" width="9" height="6" fill="#F85149" rx="1"/><rect x="5" y="3" width="3" height="3" fill="#3A1F1F"/><rect x="8" y="6" width="3" height="3" fill="#3A1F1F"/><rect x="11" y="3" width="3" height="3" fill="#3A1F1F"/></svg>`;
+  if(type==='refuel-light')
+    // Goutte d'eau seule
+    return`<svg viewBox="0 0 18 18" fill="none" width="13" height="13"><path d="M9 2.5C9 2.5 5 8 5 11.5C5 13.7 6.8 15.5 9 15.5C11.2 15.5 13 13.7 13 11.5C13 8 9 2.5 9 2.5Z" stroke="#58A6FF" stroke-width="1.3" fill="rgba(88,166,255,0.25)" stroke-linejoin="round"/><path d="M7 12.5C7 12.5 7 11 8.5 10.5" stroke="#58A6FF" stroke-width="1" stroke-linecap="round"/></svg>`;
+  if(type==='refuel-full')
+    // Goutte + fourchette
+    return`<svg viewBox="0 0 18 18" fill="none" width="13" height="13"><path d="M6.5 2.5C6.5 2.5 4 6.5 4 9C4 10.7 5.1 12 6.5 12C7.9 12 9 10.7 9 9C9 6.5 6.5 2.5 6.5 2.5Z" stroke="#FF6B35" stroke-width="1.2" fill="rgba(255,107,53,0.2)" stroke-linejoin="round"/><line x1="12.5" y1="3" x2="12.5" y2="15" stroke="#FF6B35" stroke-width="1.1" stroke-linecap="round"/><line x1="11" y1="3" x2="11" y2="6" stroke="#FF6B35" stroke-width="1.1" stroke-linecap="round"/><line x1="14" y1="3" x2="14" y2="6" stroke="#FF6B35" stroke-width="1.1" stroke-linecap="round"/><path d="M11 6 Q12.5 7.5 14 6" stroke="#FF6B35" stroke-width="1.1" fill="none" stroke-linecap="round"/></svg>`;
+  // waypoint
+  return`<svg viewBox="0 0 18 18" fill="none" width="13" height="13"><path d="M9 2C5.7 2 3 4.7 3 8C3 12.5 9 17 9 17C9 17 15 12.5 15 8C15 4.7 12.3 2 9 2Z" stroke="#58A6FF" stroke-width="1.3" fill="rgba(88,166,255,0.15)"/><circle cx="9" cy="8" r="2" fill="#58A6FF"/></svg>`;
+}
+function wpTypeBadge(type){
+  if(type==='refuel-light') return`<span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:600;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:0.4px;background:rgba(88,166,255,0.1);color:#58A6FF;border:1px solid rgba(88,166,255,0.25);margin-top:5px;">Ravito léger · Liquide</span>`;
+  if(type==='refuel-full')  return`<span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:600;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:0.4px;background:rgba(255,107,53,0.1);color:#FF6B35;border:1px solid rgba(255,107,53,0.3);margin-top:5px;">Ravito complet · Solide + Liquide</span>`;
+  return'';
+}
+function isRefuel(type){ return type==='refuel-light'||type==='refuel-full'||type==='refuel'; }
+
+function renderWaypoints(){
+  const list=document.getElementById('wpList');
+  if(!gpx||!waypoints.length){list.innerHTML='<div style="padding:24px;color:rgba(255,255,255,0.3);font-size:12px;text-align:center;">Aucun waypoint</div>';return;}
+  const kmMax=gpx.totalDist/1000;
+  list.innerHTML=waypoints.map((wp,i)=>{
+    const isFixed=wp.type==='start'||wp.type==='end';
+    const ic=wp.type==='refuel-light'?'rfuel-light':wp.type==='refuel-full'?'rfuel-full':wp.type==='start'?'start':wp.type==='end'?'end':'wpt';
+    return`<div class="wp-item">
+      <div class="wp-head">
+        <div class="wp-icon ${ic}">${wpIconSvg(wp.type)}</div>
+        <input class="wp-name-input" value="${wp.name}"
+          readonly
+          onchange="updateWpName(${i},this.value)"
+          onkeydown="if(event.key==='Enter'){this.readOnly=true;this.blur();}if(event.key==='Escape'){this.value=waypoints[${i}].name;this.readOnly=true;this.blur();}"
+          onblur="if(!this.readOnly)updateWpName(${i},this.value);this.readOnly=true;"
+          title="${isFixed?'':'Cliquer sur le crayon pour renommer'}">
+        ${isFixed?'':` <span class="wp-edit-icon" onclick="var inp=this.previousElementSibling;inp.removeAttribute('readonly');inp.focus();inp.select();" title="Renommer">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>`}
+        ${isFixed?'':`<button class="wp-del" onclick="deleteWp(${i})">×</button>`}
+      </div>
+      <div class="wp-km-row"><label>km</label>
+        <input type="range" min="0" max="${kmMax.toFixed(1)}" step="0.1" value="${wp.km}"
+          oninput="updateWpKm(${i},this.value,this)"
+          onchange="finalizeWpKm(${i})"
+          ${isFixed?'disabled':''} style="${isFixed?'opacity:0.4':''}">
+        <span class="wp-km-val">${(+wp.km).toFixed(1)}</span>
+      </div>
+      <div class="wp-stats">
+        <div class="wp-stat">Élev. <span>${Math.round(getElevAtKm(wp.km))} m</span></div>
+        <div class="wp-stat">D+ <span>${Math.round(getCumGainAtKm(wp.km))} m</span></div>
+        <div class="wp-stat">ETA <span>${estimateArrivalTime(wp.km)}</span></div>
+      </div>
+      ${isFixed?'':`<div class="type-btns">
+        <button class="type-btn ${wp.type==='waypoint'?'a-wpt':''}" onclick="setWpType(${i},'waypoint')">Waypoint</button>
+        <button class="type-btn ${wp.type==='refuel-light'?'a-rfuel-light':''}" onclick="setWpType(${i},'refuel-light')">💧 Léger</button>
+        <button class="type-btn ${wp.type==='refuel-full'?'a-rfuel-full':''}" onclick="setWpType(${i},'refuel-full')">🍽 Complet</button>
+      </div>`}
+      ${wpTypeBadge(wp.type)}
+    </div>`;
+  }).join('');
+  list.querySelectorAll('input[type=range]').forEach(inp=>{
+    updateSliderFill(inp);
+    inp.addEventListener('input',()=>updateSliderFill(inp));
+  });
+}
+function estimateArrivalTime(km){if(!gpx)return'--';const bp=getBasePace();return fmtTime(startTimeVal,km*bp+stopMin*(km/(gpx.totalDist/1000)));}
+function getElevAtKm(km){if(!gpx)return 0;const d=km*1000,idx=gpx.cumDist.findIndex(c=>c>=d);return idx<0?gpx.points[gpx.points.length-1].ele:gpx.points[Math.min(idx,gpx.points.length-1)].ele;}
+function getCumGainAtKm(km){if(!gpx)return 0;const d=km*1000;let g=0;for(let i=1;i<gpx.points.length;i++){if(gpx.cumDist[i]>d)break;const de=gpx.points[i].ele-gpx.points[i-1].ele;if(de>0.5)g+=de;}return g;}
+function updateWpName(i,v){waypoints[i].name=v;renderWaypoints();drawElevation();drawLeafletWaypoints();}
+// Appelé à chaque mouvement du slider (oninput) — pas de re-render DOM
+function updateWpKm(i,v,inp){
+  waypoints[i].km=+parseFloat(v).toFixed(1);
+  inp.parentElement.querySelector('.wp-km-val').textContent=(+v).toFixed(1);
+  // Mise à jour légère : stats waypoint dans le même item
+  const item=inp.closest('.wp-item');
+  if(item){
+    const stats=item.querySelectorAll('.wp-stat span');
+    if(stats[0]) stats[0].textContent=Math.round(getElevAtKm(waypoints[i].km))+' m';
+    if(stats[1]) stats[1].textContent=Math.round(getCumGainAtKm(waypoints[i].km))+' m';
+    if(stats[2]) stats[2].textContent=estimateArrivalTime(waypoints[i].km);
+  }
+  // Graphique et carte en temps réel, pas de re-render liste
+  drawElevation(); computeStats(); drawLeafletWaypoints();
+  // Refresh segment panel if open
+  if(currentSegPanelIdx >= 0) loadSegPanel(currentSegPanelIdx);
+}
+
+// Appelé à la fin du slide (onchange) — tri + re-render de la liste
+function finalizeWpKm(i){
+  waypoints.sort((a,b)=>a.km-b.km);
+  renderWaypoints();
+  updateSegNav();
+  // Refresh segment panel with updated boundaries
+  if(currentSegPanelIdx >= 0) loadSegPanel(currentSegPanelIdx);
+}
+function setWpType(i,t){waypoints[i].type=t;renderWaypoints();drawElevation();computeStats();drawLeafletWaypoints();if(currentSegPanelIdx>=0)loadSegPanel(currentSegPanelIdx);}
+function deleteWp(i){waypoints.splice(i,1);renderWaypoints();drawElevation();renderCutoffs();buildTable();drawLeafletWaypoints();updateSegNav();if(currentSegPanelIdx>=0)loadSegPanel(currentSegPanelIdx);}
+function openAddWpModal(){if(!gpx){notify('Importez d\'abord un GPX','err');return;}document.getElementById('wpKmInput').max=(gpx.totalDist/1000).toFixed(1);document.getElementById('addWpModal').classList.add('show');document.getElementById('wpNameInput').focus();}
+function closeAddWpModal(){document.getElementById('addWpModal').classList.remove('show');}
+function confirmAddWp(){
+  const name=document.getElementById('wpNameInput').value.trim()||'Nouveau point';
+  const km=parseFloat(document.getElementById('wpKmInput').value)||0;
+  const type=document.getElementById('wpTypeInput').value;
+  const notes=document.getElementById('wpNotesInput').value.trim();
+  waypoints.push({name,km:+km.toFixed(1),type,notes});
+  waypoints.sort((a,b)=>a.km-b.km);
+  closeAddWpModal();renderWaypoints();drawElevation();renderCutoffs();buildTable();
+  notify('✓ '+name+' ajouté','ok');
+}
+document.getElementById('addWpModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAddWpModal();});
+document.getElementById('saveSessionModal').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('show');});
+
+// ══════════════════════════════════════════
+// CUTOFFS
+// ══════════════════════════════════════════
+function renderCutoffs(){
+  const rfuels=waypoints.filter(wp=>isRefuel(wp.type));
+  const list=document.getElementById('cutoffList');
+  if(!gpx||!rfuels.length){list.innerHTML='<div style="padding:10px 0;color:rgba(255,255,255,0.3);font-size:11px;text-align:center;">Add cut-offs to track your buffer at each checkpoint.</div>';return;}
+  const bp=getBasePace(),dk=gpx.totalDist/1000;
+  list.innerHTML=rfuels.map(wp=>{
+    const eta=wp.km*bp+stopMin*(wp.km/dk),cut=eta*1.25,buf=Math.round(cut-eta);
+    const bc=buf>30?'ok':buf>15?'warn':'danger';
+    const iconColor=wp.type==='refuel-full'?'#FF6B35':'#58A6FF';
+    const iconBg=wp.type==='refuel-full'?'rgba(255,107,53,0.1)':'rgba(88,166,255,0.1)';
+    return`<div class="cutoff-item">
+      <div style="width:18px;height:18px;border-radius:50%;background:${iconBg};border:1px solid ${iconColor}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${wpIconSvg(wp.type).replace('width="13" height="13"','width="10" height="10"')}</div>
+      <span class="cutoff-name">${wp.name}</span>
+      <span class="cutoff-time">${fmtTime(startTimeVal,cut)}</span>
+      <span class="cutoff-buf ${bc}">+${buf}min</span>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// LIBRARY SAVE / LOAD
+// ══════════════════════════════════════════
+function saveCurrentSession(){
+  if(!gpx){notify('Aucun parcours chargé','err');return;}
+  document.getElementById('sessionNameInput').value=gpx.name;
+  document.getElementById('sessionDateInput').value=new Date().toISOString().slice(0,10);
+  document.getElementById('sessionTypeInput').value=currentFileType==='training'?'training':currentFileType==='route'?'route':'race';
+  document.getElementById('sessionNotesInput').value='';
+  document.getElementById('saveSessionModal').classList.add('show');
+}
+function confirmSaveSession(){
+  const name=document.getElementById('sessionNameInput').value.trim()||gpx.name;
+  const raceDate=document.getElementById('sessionDateInput').value;
+  const sType=document.getElementById('sessionTypeInput').value;
+  const notes=document.getElementById('sessionNotesInput').value.trim();
+  const dk=gpx.totalDist/1000, bp=getBasePace();
+  const effortVal=parseInt(document.getElementById('effortSlider').value);
+  const data={
+    name,raceDate,sType,notes,gpxName:gpx.name,
+    distKm:+dk.toFixed(2),elevGain:Math.round(gpx.elevGain),elevLoss:Math.round(gpx.elevLoss),
+    finishTime:fmtDuration(dk*bp+stopMin),startTimeVal,
+    effortSliderVal:effortVal, stopMin,
+    waypoints:waypoints.map(wp=>({...wp})),
+    trackPoints:gpx.points.filter((_,i)=>i%10===0).map(p=>[+p.lat.toFixed(6),+p.lon.toFixed(6),Math.round(p.ele)]),
+    savedAt:new Date().toISOString(),filename:'session_'+Date.now()+'.json'
+  };
+  document.getElementById('saveSessionModal').classList.remove('show');
+  const sessions=JSON.parse(localStorage.getItem('trp_library')||'[]');
+  sessions.unshift(data);
+  localStorage.setItem('trp_library',JSON.stringify(sessions.slice(0,100)));
+  notify('✓ Sauvegardé dans la bibliothèque','ok');
+  refreshLibrary();
+}
+
+function refreshLibrary(){
+  const sessions=JSON.parse(localStorage.getItem('trp_library')||'[]');
+  library={races:[],training:[],routes:[]};
+  sessions.forEach(s=>{
+    if(s.sType==='training') library.training.push(s);
+    else if(s.sType==='route') library.routes.push(s);
+    else library.races.push(s);
+  });
+  renderLibGrid('races','racesGrid','racesEmpty','racesCount');
+  renderLibGrid('training','trainingGrid','trainingEmpty','trainingCount');
+  renderLibGrid('routes','routesGrid','routesEmpty','routesCount');
+}
+
+function renderLibGrid(type,gridId,emptyId,countId){
+  const grid=document.getElementById(gridId);
+  const empty=document.getElementById(emptyId);
+  const items=library[type];
+  document.getElementById(countId).textContent=items.length;
+  if(!items.length){grid.innerHTML='';if(empty){empty.style.display='flex';}return;}
+  if(empty) empty.style.display='none';
+  grid.innerHTML=items.map(s=>{
+    const d=new Date(s.savedAt);
+    const dateStr=d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+    const raceDate=s.raceDate?new Date(s.raceDate+' 00:00'):null;
+    const daysUntil=raceDate?Math.ceil((raceDate-new Date().setHours(0,0,0,0))/(86400000)):null;
+    const badgeCls=s.sType==='training'?'training':'gpx';
+    const badgeLbl=s.sType==='training'?'Entraînement':s.sType==='route'?'Route GPX':'Course GPX';
+    return`<div class="lib-card" onclick="openSession('${s.filename}')">
+      <div class="card-hero">
+        <svg class="card-hero-svg" viewBox="0 0 600 160" preserveAspectRatio="none">${generateMiniMap(s)}</svg>
+        <div class="card-hero-overlay"></div>
+        <span class="card-type-badge ${badgeCls}">${badgeLbl}</span>
+        <div class="card-hero-content">
+          <div class="card-name">${s.name}</div>
+          <div class="card-location">📅 ${dateStr}</div>
+        </div>
+        ${daysUntil!==null?`<div class="card-countdown"><div class="countdown-label">Course dans</div><div class="countdown-blocks">${formatCountdown(daysUntil)}</div></div>`:''}
+        <button class="card-del-btn" onclick="event.stopPropagation();deleteLibItem('${s.filename}')">×</button>
+      </div>
+      <div class="card-body">
+        <div>
+          <div class="card-stats">
+            ${s.distKm?`<div class="card-stat">📏 <strong>${s.distKm} km</strong></div>`:''}
+            ${s.elevGain?`<div class="card-stat">⛰️ <strong>D+ ${s.elevGain}m</strong></div>`:''}
+          </div>
+          ${s.finishTime?`<div style="margin-top:8px"><div class="card-time-main">${s.finishTime}</div><div class="card-time-sub">Objectif</div></div>`:''}
+        </div>
+        <button class="card-open-btn">Ouvrir →</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatCountdown(days){
+  if(days<0) return`<div class="countdown-block"><div class="countdown-num">—</div><div class="countdown-unit">passée</div></div>`;
+  if(days===0) return`<div class="countdown-block"><div class="countdown-num" style="color:var(--orange)">Auj.</div></div>`;
+  if(days<30) return`<div class="countdown-block"><div class="countdown-num" style="${days<7?'color:var(--orange)':''}">${days}</div><div class="countdown-unit">jours</div></div>`;
+  return`<div class="countdown-block"><div class="countdown-num">${Math.floor(days/30)}</div><div class="countdown-unit">mois</div></div><div class="countdown-block"><div class="countdown-num">${days%30}</div><div class="countdown-unit">j</div></div>`;
+}
+
+function generateMiniMap(s){
+  if(!s.trackPoints||s.trackPoints.length<2) return`<rect width="600" height="160" fill="#0a1520"/>`;
+  const pts=s.trackPoints;
+  const lats=pts.map(p=>p[0]),lons=pts.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLon=Math.min(...lons),maxLon=Math.max(...lons);
+  const minE=Math.min(...pts.map(p=>p[2])),maxE=Math.max(...pts.map(p=>p[2]));
+  const W=600,H=160,pad=18,rx=maxLon-minLon||0.001,ry=maxLat-minLat||0.001;
+  const sc=Math.min((W-pad*2)/rx,(H-pad*2)/ry)*0.85;
+  const cx=W/2-(minLon+rx/2)*sc,cy=H/2+(minLat+ry/2)*sc;
+  const toX=lon=>lon*sc+cx,toY=lat=>-lat*sc+cy;
+  const eC=e=>{const t=(e-minE)/(maxE-minE||1);return`rgb(${Math.round(40+t*215)},${Math.round(107-t*10)},${Math.round(53+t*10)})`;};
+  let segs=`<rect width="600" height="160" fill="#0a1520"/>`;
+  for(let i=1;i<pts.length;i++) segs+=`<line x1="${toX(pts[i-1][1]).toFixed(1)}" y1="${toY(pts[i-1][0]).toFixed(1)}" x2="${toX(pts[i][1]).toFixed(1)}" y2="${toY(pts[i][0]).toFixed(1)}" stroke="${eC(pts[i][2])}" stroke-width="2.2" stroke-linecap="round"/>`;
+  return segs;
+}
+
+function openSession(filename){
+  const sessions=JSON.parse(localStorage.getItem('trp_library')||'[]');
+  const data=sessions.find(s=>s.filename===filename);
+  if(!data)return;
+  startTimeVal=data.startTimeVal||'07:30';
+  stopMin=data.stopMin||10;
+  document.getElementById('startTime').value=startTimeVal;
+  document.getElementById('effortSlider').value=data.effortSliderVal||0;
+  currentFileType=data.sType||'race';
+  if(data.trackPoints&&data.trackPoints.length){
+    const points=data.trackPoints.map(([lat,lon,ele])=>({lat,lon,ele}));
+    gpx=null; processTrack(points,data.gpxName||data.name,data.sType==='training');
+    waypoints=data.waypoints||[]; computeStats(); drawElevation(); renderWaypoints();
+    if(leafletMap){ drawRoute(); } else { initLeafletMap(); }
+  }
+  showScreen('appScreen'); notify('✓ "'+data.name+'" ouvert','ok');
+}
+
+function deleteLibItem(filename){
+  if(!confirm('Supprimer cette entrée ?'))return;
+  const sessions=JSON.parse(localStorage.getItem('trp_library')||'[]');
+  localStorage.setItem('trp_library',JSON.stringify(sessions.filter(s=>s.filename!==filename)));
+  refreshLibrary(); notify('Supprimé','ok');
+}
+
+// ══════════════════════════════════════════
+// ELEVATION CHART
+// ══════════════════════════════════════════
+function drawElevation(){
+  const svg=document.getElementById('elevSvg'); if(!gpx)return;
+  const wrap=document.getElementById('elevChartWrap');
+  void wrap.offsetHeight; // force reflow
+  const W=wrap.clientWidth;
+  const H=wrap.clientHeight||180;
+
+  // If width not yet available (initial render before layout), retry after paint
+  if(!W || W < 100){
+    requestAnimationFrame(()=>requestAnimationFrame(()=>drawElevation()));
+    return;
+  }
+
+  const pad={l:52,r:16,t:16,b:40};
+  const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
+
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+
+  const pts=gpx.points, dist=gpx.cumDist, maxDist=gpx.totalDist;
+  const eles=pts.map(p=>p.ele);
+  const minE=Math.min(...eles), maxE=Math.max(...eles);
+  const eRange=maxE-minE||1;
+  // Elevation scale with nice round ticks
+  const eStep=Math.ceil((eRange/4)/100)*100||100;
+  const eLo=Math.floor(minE/eStep)*eStep;
+  const eHi=Math.ceil(maxE/eStep)*eStep;
+
+  const xS=d=>pad.l+( d/maxDist)*cW;
+  const yS=e=>pad.t+cH*(1-(e-eLo)/(eHi-eLo));
+
+  // X ticks
+  const xKm=maxDist<25000?2:maxDist<60000?5:maxDist<100000?10:20;
+  const xTicks=[];
+  for(let km=0;km*1000<=maxDist;km+=xKm) xTicks.push({d:km*1000,x:xS(km*1000),label:(km*1000/1000).toFixed(1)+' km'});
+
+  // Y ticks (elevation)
+  const yTicks=[];
+  for(let e=eLo;e<=eHi;e+=eStep) yTicks.push({e,y:yS(e)});
+
+  // Elevation path
+  const elPathD=pts.map((p,i)=>`${i===0?'M':'L'}${xS(dist[i]).toFixed(1)},${yS(p.ele).toFixed(1)}`).join(' ');
+
+  // Segment highlight
+  let segHL='';
+  const segs=getSegments();
+  if(currentSegIdx>=0){
+    const seg=segs[currentSegIdx+1];
+    if(seg){
+      const x1=xS(seg.from*1000),x2=xS(seg.to*1000);
+      segHL=`<rect x="${pad.l}" y="${pad.t}" width="${(x1-pad.l).toFixed(1)}" height="${cH}" fill="rgba(0,0,0,0.4)"/>
+      <rect x="${x2.toFixed(1)}" y="${pad.t}" width="${(W-pad.r-x2).toFixed(1)}" height="${cH}" fill="rgba(0,0,0,0.4)"/>
+      <rect x="${x1.toFixed(1)}" y="${pad.t}" width="${(x2-x1).toFixed(1)}" height="${cH}" fill="rgba(255,255,255,0.02)"/>
+      <line x1="${x1.toFixed(1)}" y1="${pad.t}" x2="${x1.toFixed(1)}" y2="${pad.t+cH}" stroke="#FF6B35" stroke-width="1" opacity="0.8" stroke-dasharray="4,3"/>
+      <line x1="${x2.toFixed(1)}" y1="${pad.t}" x2="${x2.toFixed(1)}" y2="${pad.t+cH}" stroke="#FF6B35" stroke-width="1" opacity="0.8" stroke-dasharray="4,3"/>`;
+    }
+  }
+
+  // Waypoints
+  let wpSvg='';
+  const visWps=filteredWaypoints();
+  const usedLX=[];
+  visWps.forEach(wp=>{
+    const x=xS(wp.km*1000);
+    const color=wp.type==='refuel-full'?'#FF6B35':wp.type==='refuel-light'?'#58A6FF':wp.type==='start'?'#3FB950':wp.type==='end'?'#F85149':'#8B949E';
+    const ey=yS(getElevAtKm(wp.km));
+    // Vertical dashed line
+    wpSvg+=`<line x1="${x.toFixed(1)}" y1="${pad.t}" x2="${x.toFixed(1)}" y2="${pad.t+cH}" stroke="${color}" stroke-width="1" stroke-dasharray="4,3" opacity="0.7"/>`;
+    // Dot on elevation line
+    wpSvg+=`<circle cx="${x.toFixed(1)}" cy="${ey.toFixed(1)}" r="5" fill="${color}" stroke="rgba(10,12,18,0.9)" stroke-width="2"/>`;
+    // Label below x-axis
+    const lbl=wp.name.length>12?wp.name.substring(0,12)+'…':wp.name;
+    const tx=Math.max(pad.l+4,Math.min(W-pad.r-4,x));
+    if(!usedLX.some(px=>Math.abs(px-tx)<44)){
+      usedLX.push(tx);
+      wpSvg+=`<text x="${tx.toFixed(1)}" y="${pad.t+cH+28}" text-anchor="middle" fill="${color}" font-size="9" font-weight="500" font-family="-apple-system,Segoe UI,sans-serif">${lbl}</text>`;
+    }
+  });
+
+  // Hover cursor line
+  const cursorId='ec-cursor-'+Math.random().toString(36).slice(2);
+
+  svg.removeAttribute('viewBox');
+  svg.innerHTML=`
+<defs>
+  <linearGradient id="eg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#FF6B35" stop-opacity="0.35"/>
+    <stop offset="100%" stop-color="#FF6B35" stop-opacity="0.02"/>
+  </linearGradient>
+  <clipPath id="chartClip">
+    <rect x="${pad.l}" y="${pad.t}" width="${cW}" height="${cH}"/>
+  </clipPath>
+</defs>
+
+<!-- Grid lines horizontal -->
+${yTicks.map(t=>`<line x1="${pad.l}" y1="${t.y.toFixed(1)}" x2="${pad.l+cW}" y2="${t.y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`).join('')}
+
+<!-- Grid lines vertical (km) -->
+${xTicks.map(t=>`<line x1="${t.x.toFixed(1)}" y1="${pad.t}" x2="${t.x.toFixed(1)}" y2="${pad.t+cH}" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`).join('')}
+
+<!-- Elevation fill -->
+<path d="${elPathD} L${xS(maxDist).toFixed(1)},${(pad.t+cH).toFixed(1)} L${xS(0).toFixed(1)},${(pad.t+cH).toFixed(1)} Z" fill="url(#eg)" clip-path="url(#chartClip)"/>
+
+<!-- Elevation line -->
+<path d="${elPathD}" fill="none" stroke="#FF6B35" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#chartClip)"/>
+
+
+<!-- Segment highlight -->
+${segHL}
+
+<!-- Waypoints -->
+${wpSvg}
+
+<!-- Y axis labels (elevation, left) -->
+${yTicks.map(t=>`<text x="${pad.l-8}" y="${(t.y+4).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,0.45)" font-size="10" font-family="-apple-system,Segoe UI,sans-serif">${t.e} m</text>`).join('')}
+
+<!-- X axis labels (km, bottom) -->
+${xTicks.map(t=>`<text x="${t.x.toFixed(1)}" y="${(pad.t+cH+14).toFixed(1)}" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="10" font-family="-apple-system,Segoe UI,sans-serif">${t.label}</text>`).join('')}
+
+
+<!-- X axis line -->
+<line x1="${pad.l}" y1="${(pad.t+cH).toFixed(1)}" x2="${(pad.l+cW).toFixed(1)}" y2="${(pad.t+cH).toFixed(1)}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+
+<!-- Hover cursor (invisible, updated on mousemove) -->
+<line id="elevCursorLine" x1="-999" y1="${pad.t}" x2="-999" y2="${pad.t+cH}" stroke="rgba(255,255,255,0.4)" stroke-width="1" pointer-events="none"/>
+`;
+
+  // Hover interaction
+  svg.onmousemove=(e)=>{
+    const rect=svg.getBoundingClientRect();
+    const mx = e.clientX - rect.left;  // CSS px = SVG px (no viewBox)
+    const dM = ((mx - pad.l) / cW) * maxDist;
+    const hv = document.getElementById('elevHover');
+    const cursor = document.getElementById('elevCursorLine');
+    if(dM < 0 || dM > maxDist){
+      hv.style.display='none';
+      if(cursor){cursor.setAttribute('x1','-999');cursor.setAttribute('x2','-999');}
+      return;
+    }
+    const idx = gpx.cumDist.findIndex(d=>d>=dM);
+    if(idx < 0) return;
+    const pt = gpx.points[idx];
+    const ks = (dM/1000).toFixed(1);
+    if(cursor){ const cx=xS(dM).toFixed(1); cursor.setAttribute('x1',cx); cursor.setAttribute('x2',cx); }
+    hv.style.display = 'block';
+    hv.style.left = Math.min(rect.width - 170, mx + 12) + 'px';
+    hv.innerHTML = `<strong>${ks} km</strong><br>Élév: <span style="color:#FF6B35">${Math.round(pt.ele)} m</span><br>ETA: ${estimateArrivalTime(+ks)}`;
+    showMapCursor(pt.lat, pt.lon);
+  };
+  svg.onmouseleave=()=>{
+    document.getElementById('elevHover').style.display='none';
+    hideMapCursor();
+    const cursor=document.getElementById('elevCursorLine');
+    if(cursor){cursor.setAttribute('x1','-999');cursor.setAttribute('x2','-999');}
+  };
+}
+
+function setElevView(v,btn){elevView=v;document.querySelectorAll('.elev-seg-btn').forEach(t=>t.classList.remove('active'));if(btn)btn.classList.add('active');drawElevation();}
+
+// ══════════════════════════════════════════
+// LEAFLET MAP
+// ══════════════════════════════════════════
+let leafletMap = null;
+let leafletTrack = null;
+let leafletMarkers = [];
+let leafletHoverMarker = null;
+let currentLayer = 'osm';
+let tileLayer = null;
+let tileLayerFallback = null;
+
+const TILE_LAYERS = {
+  osm: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+    subdomains: 'abc'
+  },
+  topo: {
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: '© <a href="https://opentopomap.org">OpenTopoMap</a>',
+    maxZoom: 17,
+    subdomains: 'abc'
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: '© <a href="https://www.esri.com">Esri</a>',
+    maxZoom: 19,
+    subdomains: ''
+  },
+  swisstopo: {
+    url: 'https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',
+    attribution: '© <a href="https://www.swisstopo.admin.ch">swisstopo</a>',
+    maxZoom: 18,
+    subdomains: '',
+    fallback: true   // needs OSM underneath outside CH
+  }
+};
+
+function initLeafletMap() {
+  if (leafletMap) return;
+  // Load Leaflet JS dynamically
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+  script.onload = () => {
+    leafletMap = L.map('leafletMap', {
+      zoomControl: true,
+      attributionControl: true
+    });
+    leafletMap.setView([46.5, 8.0], 8);
+    // Auto SwissTopo if track is in Switzerland
+    applyTileLayer(gpx?.inSwitzerland ? 'swisstopo' : 'osm');
+    if (gpx) drawRoute();
+  };
+  document.head.appendChild(script);
+}
+
+function applyTileLayer(layerName) {
+  if (!leafletMap) return;
+  const cfg = TILE_LAYERS[layerName];
+  if (!cfg) return;
+  if (tileLayer) leafletMap.removeLayer(tileLayer);
+
+  // For SwissTopo: OSM fallback underneath (covers outside CH where no tiles)
+  if (cfg.fallback) {
+    if (!tileLayerFallback) {
+      tileLayerFallback = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        subdomains: 'abc', maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(leafletMap);
+    }
+  } else {
+    if (tileLayerFallback) { leafletMap.removeLayer(tileLayerFallback); tileLayerFallback = null; }
+  }
+
+  tileLayer = L.tileLayer(cfg.url, {
+    attribution: cfg.attribution,
+    maxZoom: cfg.maxZoom,
+    subdomains: cfg.subdomains || ''
+  }).addTo(leafletMap);
+
+  currentLayer = layerName;
+
+  // Reset opacity slider
+  const sl = document.getElementById('mapOpacitySlider');
+  if(sl){ sl.value=100; document.getElementById('mapOpacityVal').textContent='100%'; }
+
+  // Update button highlights
+  Object.keys(TILE_LAYERS).forEach(l => {
+    const btn = document.getElementById('btnLayer_' + l);
+    if(btn) btn.classList.toggle('active', l === layerName);
+  });
+}
+
+function setMapOpacity(val){
+  const v = parseInt(val)/100;
+  document.getElementById('mapOpacityVal').textContent = val+'%';
+  if(tileLayer) tileLayer.setOpacity(v);
+  if(tileLayerFallback) tileLayerFallback.setOpacity(Math.min(v, 1));
+}
+
+function setMapLayer(layerName) {
+  applyTileLayer(layerName);
+}
+
+// ── Track color mode ──────────────────────────────────────────
+let trackColorMode = 'solid'; // 'solid' | 'altitude' | 'slope'
+
+function setTrackColor(mode){
+  trackColorMode = mode;
+  ['solid','altitude','slope'].forEach(m => {
+    const btn = document.getElementById('btnTrack_'+m);
+    if(btn) btn.classList.toggle('active', m === mode);
+  });
+  drawRoute();
+}
+function drawRoute() {
+  if (!gpx || !leafletMap) return;
+  if (leafletTrack) leafletMap.removeLayer(leafletTrack);
+  leafletMarkers.forEach(m => leafletMap.removeLayer(m));
+  leafletMarkers = [];
+
+  const pts = gpx.points;
+  const eles = pts.map(p => p.ele);
+  const minE = Math.min(...eles), maxE = Math.max(...eles);
+
+  // ── Color functions — Strava style ──────────────────────────
+
+  // Altitude: violet (low) → blue → cyan → green → yellow → orange → red (high)
+  const altColor = e => {
+    const t = Math.max(0, Math.min(1, (e - minE) / (maxE - minE || 1)));
+    // Strava heatmap: purple→blue→cyan→green→yellow→orange→red
+    const stops = [
+      [128, 0,   128],  // 0.0 purple
+      [0,   0,   255],  // 0.17 blue
+      [0,   255, 255],  // 0.33 cyan
+      [0,   255, 0  ],  // 0.50 green
+      [255, 255, 0  ],  // 0.67 yellow
+      [255, 128, 0  ],  // 0.83 orange
+      [255, 0,   0  ],  // 1.0  red
+    ];
+    const seg = t * (stops.length - 1);
+    const lo = Math.floor(seg), hi = Math.min(stops.length-1, lo+1);
+    const u = seg - lo;
+    const [r,g,b] = stops[lo].map((v,i) => Math.round(v + u*(stops[hi][i]-v)));
+    return `rgb(${r},${g},${b})`;
+  };
+
+  // ── Pre-compute smoothed slopes ──────────────────────────────
+  // Use a sliding window covering ~50m of cumulative distance
+  // to average out GPS noise before computing grade
+  const SMOOTH_DIST = 25; // metres each side
+  const smoothedGrades = pts.map((_, i) => {
+    // Find indices within SMOOTH_DIST metres on each side
+    let i0 = i, i1 = i;
+    let dBack = 0, dFwd = 0;
+    while(i0 > 0 && dBack < SMOOTH_DIST){
+      dBack += haversine(pts[i0-1].lat,pts[i0-1].lon,pts[i0].lat,pts[i0].lon);
+      i0--;
+    }
+    while(i1 < pts.length-1 && dFwd < SMOOTH_DIST){
+      dFwd += haversine(pts[i1].lat,pts[i1].lon,pts[i1+1].lat,pts[i1+1].lon);
+      i1++;
+    }
+    const dLat = (pts[i1].lat - pts[i0].lat)*111320;
+    const dLon = (pts[i1].lon - pts[i0].lon)*111320*Math.cos(pts[i].lat*Math.PI/180);
+    const horiz = Math.sqrt(dLat*dLat + dLon*dLon);
+    const dEle = pts[i1].ele - pts[i0].ele;
+    return horiz > 1 ? (dEle/horiz)*100 : 0;
+  });
+
+  const gradeToColor = g => {
+    if(g >= 16) return '#7B1FA2';
+    if(g >= 12) return '#B71C1C';
+    if(g >= 8)  return '#E53935';
+    if(g >= 4)  return '#FB8C00';
+    if(g >= 0)  return '#66BB6A';
+    if(g >= -4)  return '#81D4FA';
+    if(g >= -8)  return '#29B6F6';
+    if(g >= -12) return '#0288D1';
+    if(g >= -16) return '#01579B';
+    return '#0D1B4B';
+  };
+
+  // Slope: Strava gradient colors by % grade
+  const slopeColor = (i) => gradeToColor(smoothedGrades[i]);
+
+  // ── Draw track ───────────────────────────────────────────────
+  const trackGroup = L.layerGroup();
+  const allPts = pts.map(p => [p.lat, p.lon]);
+
+  // Shadow pass
+  L.polyline(allPts, { color:'#000', weight:6, opacity:0.2, lineCap:'round' }).addTo(trackGroup);
+
+  if(trackColorMode === 'solid'){
+    L.polyline(allPts, { color:'#FF6B35', weight:4, opacity:0.95, lineCap:'round', lineJoin:'round' }).addTo(trackGroup);
+  } else {
+    // Build color array per point, then merge consecutive same-color runs
+    const colors = pts.map((_, i) =>
+      trackColorMode === 'altitude' ? altColor((pts[Math.max(0,i-1)].ele + pts[i].ele)/2) : slopeColor(i)
+    );
+
+    // Merge runs of the same color into single polylines
+    let runStart = 0;
+    for(let i = 1; i <= pts.length; i++){
+      if(i === pts.length || colors[i] !== colors[runStart]){
+        // Draw this run (include 1 overlap point for smooth joins)
+        const seg = pts.slice(Math.max(0, runStart-1), i+1).map(p=>[p.lat,p.lon]);
+        L.polyline(seg, {
+          color: colors[runStart], weight:4, opacity:0.95,
+          lineCap:'butt', lineJoin:'round'
+        }).addTo(trackGroup);
+        runStart = i;
+      }
+    }
+  }
+
+  leafletTrack = trackGroup.addTo(leafletMap);
+  drawLeafletWaypoints();
+  fitMapToTrack();
+}
+
+function drawLeafletWaypoints() {
+  if (!leafletMap || !gpx) return;
+  leafletMarkers.forEach(m => leafletMap.removeLayer(m));
+  leafletMarkers = [];
+
+  const visWaypoints = filteredWaypoints();
+  visWaypoints.forEach((wp, idx) => {
+    const pi = gpx.cumDist.findIndex(d => d >= wp.km * 1000);
+    const pt = pi >= 0 ? gpx.points[pi] : gpx.points[gpx.points.length - 1];
+    const color = wp.type==='refuel-full'?'#FF6B35':wp.type==='refuel-light'?'#58A6FF':wp.type==='refuel'?'#E3B341':wp.type==='start'?'#3FB950':wp.type==='end'?'#F85149':'#58A6FF';
+    const bg    = wp.type==='refuel-full'?'rgba(60,25,10,0.92)':wp.type==='refuel-light'?'rgba(12,26,50,0.92)':wp.type==='refuel'?'#2D1F0A':wp.type==='start'?'#1F3A2B':wp.type==='end'?'#3A1F1F':'#1B3A5C';
+    const lbl   = idx===0?'S':wp.type==='end'?'F':isRefuel(wp.type)?'R':String(idx);
+
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="width:28px;height:28px;border-radius:50%;background:${bg};border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:${color};font-family:-apple-system,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,0.5);">${lbl}</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+
+    const eta = estimateArrivalTime(wp.km);
+    const elev = Math.round(getElevAtKm(wp.km));
+    const gain = Math.round(getCumGainAtKm(wp.km));
+
+    const marker = L.marker([pt.lat, pt.lon], { icon })
+      .bindPopup(`
+        <div style="font-family:-apple-system,sans-serif;min-width:160px;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:${color}">${wp.name}</div>
+          <div style="font-size:11px;color:#666;line-height:1.8;">
+            📏 ${wp.km.toFixed(1)} km<br>
+            ⛰️ ${elev} m · D+ ${gain} m<br>
+            ⏱ ETA : <strong>${eta}</strong>
+          </div>
+        </div>
+      `, { maxWidth: 200 })
+      .addTo(leafletMap);
+
+    leafletMarkers.push(marker);
+  });
+}
+
+function fitMapToTrack() {
+  if (!leafletMap || !gpx) return;
+  const pts = gpx.points;
+  const bounds = L.latLngBounds(pts.map(p => [p.lat, p.lon]));
+  leafletMap.fitBounds(bounds, { padding: [40, 40] });
+}
+
+// Hover cursor on elevation chart → show position on map
+let elevCursorMarker = null;
+function showMapCursor(lat, lon, info) {
+  if (!leafletMap) return;
+  if (elevCursorMarker) leafletMap.removeLayer(elevCursorMarker);
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="width:12px;height:12px;border-radius:50%;background:#FF6B35;border:2px solid #fff;box-shadow:0 0 0 2px #FF6B35;"></div>`,
+    iconSize: [12, 12], iconAnchor: [6, 6]
+  });
+  elevCursorMarker = L.marker([lat, lon], { icon, zIndexOffset: 1000 }).addTo(leafletMap);
+}
+function hideMapCursor() {
+  if (elevCursorMarker && leafletMap) { leafletMap.removeLayer(elevCursorMarker); elevCursorMarker = null; }
+}
+
+// ══════════════════════════════════════════
+// TABLE VIEW
+// ══════════════════════════════════════════
+function buildTable(){
+  if(!gpx)return;
+  const body=document.getElementById('segTableBody'),dk=gpx.totalDist/1000,bp=getBasePace();
+  const sorted=[...waypoints].sort((a,b)=>a.km-b.km);
+  body.innerHTML=sorted.map((wp,i)=>{
+    const prev=i>0?sorted[i-1]:null,segKm=prev?wp.km-prev.km:0;
+    const cumMin=wp.km*bp+stopMin*(wp.km/dk);
+    const color=isRefuel(wp.type)?'ye':wp.type==='start'?'gr':wp.type==='end'?'':'bl';
+    const tl=wp.type==='refuel-light'?'💧 Ravito léger':wp.type==='refuel-full'?'🍽 Ravito complet':wp.type==='refuel'?'🥤 Ravito':wp.type==='start'?'🚦 Départ':wp.type==='end'?'🏁 Arrivée':'📍 Waypoint';
+    return`<tr><td class="${color}">${i+1}</td><td><strong>${wp.name}</strong></td><td class="or">${wp.km.toFixed(1)}</td><td>${Math.round(getElevAtKm(wp.km))}m</td><td>${Math.round(getCumGainAtKm(wp.km))}m</td><td>${prev?fmtDuration(segKm*bp):'—'}<br><div class="seg-bar" style="width:${Math.round((segKm/dk)*120)}px;margin-top:3px"></div></td><td class="or">${fmtTime(startTimeVal,cumMin)}</td><td>${prev?fmtPace(bp):'—'}</td><td style="font-size:11px">${tl}</td></tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// VIEW SWITCHING
+// ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// ELEVATION PANEL — DRAG TO RESIZE + TOGGLE
+// ══════════════════════════════════════════
+const ELEV_H_MIN    = 240;
+const ELEV_H_MAX    = 480;
+const ELEV_H_CLOSED = 62;   // handle(18) + bar(44)
+
+let elevOpen   = true;
+let elevH      = ELEV_H_MIN; // current open height
+let bottomView = 'elev';
+
+// ── Drag state ──
+let dragState = null; // { startY, startH }
+
+// ── Helper: redraw elevation after CSS transition ends ──────
+function redrawElevAfterTransition(delay = 260){
+  // Wait for CSS transition (0.25s) to finish, then read actual DOM size
+  setTimeout(() => {
+    if(!gpx || !elevOpen) return;
+    const wrap = document.getElementById('elevChartWrap');
+    const svg  = document.getElementById('elevSvg');
+    if(!wrap || !svg) return;
+    // Force a reflow so clientHeight is up to date
+    void wrap.offsetHeight;
+    drawElevation();
+  }, delay);
+}
+
+function setElevHeight(h){
+  elevH = Math.round(Math.max(ELEV_H_MIN, Math.min(ELEV_H_MAX, h)));
+  document.documentElement.style.setProperty('--elev-h', elevH + 'px');
+  if(leafletMap) leafletMap.invalidateSize();
+  // During drag: redraw immediately (no transition, DOM size is live)
+  if(gpx && elevOpen) drawElevation();
+}
+
+function toggleElevPanel(){
+  elevOpen = !elevOpen;
+  const ef = document.getElementById('elevFloat');
+  ef.classList.toggle('collapsed', !elevOpen);
+  const h = elevOpen ? elevH : ELEV_H_CLOSED;
+  document.documentElement.style.setProperty('--elev-h', h + 'px');
+  // Wait for the 0.25s CSS transition to finish before redrawing
+  if(leafletMap) setTimeout(()=>leafletMap.invalidateSize(), 280);
+  if(elevOpen && gpx) redrawElevAfterTransition(280);
+}
+
+// ── Handle pointer events ──
+(function initElevDrag(){
+  const handle = document.getElementById('elevHandle');
+  if(!handle) return;
+
+  handle.addEventListener('mousedown', onDragStart);
+  handle.addEventListener('touchstart', onDragStart, { passive: false });
+
+  function onDragStart(e){
+    e.preventDefault();
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    dragState = { startY: clientY, startH: elevOpen ? elevH : ELEV_H_CLOSED, moved: false };
+
+    const ef = document.getElementById('elevFloat');
+    ef.classList.add('dragging');
+    document.body.classList.add('elev-dragging');
+
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('touchmove',  onDragMove, { passive: false });
+    document.addEventListener('mouseup',   onDragEnd);
+    document.addEventListener('touchend',  onDragEnd);
+  }
+
+  function onDragMove(e){
+    if(!dragState) return;
+    e.preventDefault();
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const dy = dragState.startY - clientY; // up = positive = bigger
+    if(Math.abs(dy) > 3) dragState.moved = true;
+
+    const newH = dragState.startH + dy;
+
+    if(newH < ELEV_H_MIN * 0.4){
+      if(elevOpen){
+        elevOpen = false;
+        document.getElementById('elevFloat').classList.add('collapsed');
+        document.documentElement.style.setProperty('--elev-h', ELEV_H_CLOSED + 'px');
+        if(leafletMap) leafletMap.invalidateSize();
+      }
+    } else {
+      if(!elevOpen){
+        elevOpen = true;
+        document.getElementById('elevFloat').classList.remove('collapsed');
+      }
+      setElevHeight(newH);
+    }
+  }
+
+  function onDragEnd(e){
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('touchmove',  onDragMove);
+    document.removeEventListener('mouseup',   onDragEnd);
+    document.removeEventListener('touchend',  onDragEnd);
+
+    const ef = document.getElementById('elevFloat');
+    ef.classList.remove('dragging');
+    document.body.classList.remove('elev-dragging');
+
+    if(dragState && !dragState.moved){
+      // Pure click → toggle
+      toggleElevPanel();
+    } else if(dragState){
+      if(!elevOpen){
+        document.documentElement.style.setProperty('--elev-h', ELEV_H_CLOSED + 'px');
+      } else {
+        // Snap to nearest 10px
+        elevH = Math.round(elevH / 10) * 10;
+        document.documentElement.style.setProperty('--elev-h', elevH + 'px');
+        // No CSS transition during drag, so DOM size is already correct — redraw immediately
+        if(gpx) drawElevation();
+      }
+      if(leafletMap) setTimeout(()=>leafletMap.invalidateSize(), 30);
+    }
+    dragState = null;
+  }
+})();
+
+function switchBottomView(v, btn){
+  bottomView = v;
+  document.querySelectorAll('.elev-view-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const chartWrap = document.getElementById('elevChartWrap');
+  const tableView = document.getElementById('tableView');
+  const legend    = document.getElementById('elevLegend');
+  const segTabs   = document.getElementById('elevSegTabs');
+  if(v === 'elev'){
+    chartWrap.style.display = '';
+    tableView.style.display = 'none';
+    if(legend)   legend.style.display   = '';
+    if(segTabs)  segTabs.style.display  = '';
+    // Wait one frame for display:'' to take effect, then draw at correct size
+    requestAnimationFrame(()=>{ void chartWrap.offsetHeight; if(gpx) drawElevation(); });
+  } else {
+    chartWrap.style.display = 'none';
+    tableView.style.display = 'flex';
+    tableView.style.flexDirection = 'column';
+    if(legend)  legend.style.display  = 'none';
+    if(segTabs) segTabs.style.display = 'none';
+    buildTable();
+  }
+}
+
+// ══════════════════════════════════════════
+// SEGMENT NAVIGATION + FILTER
+// ══════════════════════════════════════════
+let currentSegIdx = -1;  // -1 = Entire Race
+
+function getSegments(){
+  // Build segments from sorted non-start/end waypoints boundaries
+  const sorted=[...waypoints].sort((a,b)=>a.km-b.km);
+  const segs=[{label:'Entire Race',from:-1,to:-1}];
+  for(let i=0;i<sorted.length-1;i++){
+    const a=sorted[i],b=sorted[i+1];
+    segs.push({label:`${a.name} → ${b.name}`,from:a.km,to:b.km,wpA:a,wpB:b});
+  }
+  return segs;
+}
+
+
+// ══════════════════════════════════════════
+// SEGMENT PANEL
+// ══════════════════════════════════════════
+let currentSegPanelIdx = -1; // -1 = not open
+// Per-segment overrides: { effort, techni, c1, c2, c3, c4 }
+const segOverrides = {};
+
+const TECHNI_LABELS   = ['Roulant','Technique','Alpin','Extrême'];
+const TECHNI_COEFF    = [1.00, 1.08, 1.18, 1.30];
+const TECHNI_CLASSES  = ['sel-easy','sel-mod','sel-hard','sel-extreme'];
+const TECHNI_HINTS    = ['→ aucune pénalité','→ +8 % sur allure','→ +18 % sur allure','→ +30 % sur allure'];
+
+function openSegPanel(segIdx){
+  currentSegPanelIdx = segIdx;
+  // Hide fp-header + fp-scroll of course summary, show seg panel
+  document.querySelector('#floatPanelInner>.fp-header').style.display='none';
+  document.querySelector('#floatPanelInner>.fp-scroll').style.display='none';
+  document.getElementById('segPanel').style.display='flex';
+  loadSegPanel(segIdx);
+}
+
+function closeSegPanel(){
+  currentSegPanelIdx = -1;
+  document.querySelector('#floatPanelInner>.fp-header').style.display='';
+  document.querySelector('#floatPanelInner>.fp-scroll').style.display='';
+  document.getElementById('segPanel').style.display='none';
+  currentSegIdx = -1;
+  updateSegNav();
+  if(gpx) drawElevation();
+}
+
+function loadSegPanel(segIdx){
+  if(!gpx) return;
+  const segs = getSegments();
+  // segs[0] = {label:'Entire Race',...}, segs[1..n] = real segments
+  const seg = segs[segIdx + 1];
+  if(!seg) return;
+
+  const ov = segOverrides[segIdx] || {};
+  const effort = ov.effort ?? 0;
+  const techni = ov.techni ?? 0;
+  const c1 = ov.c1 ?? 100;
+  const c2 = ov.c2 ?? 100;
+  const c3 = ov.c3 ?? 0;
+  const c4 = ov.c4 ?? 100;
+
+  const distKm = seg.to - seg.from;
+  const gain = getElevGainForSeg(seg.from, seg.to);
+  const loss = Math.round(getElevLossForSeg(seg.from, seg.to));
+  const ratio = distKm > 0 ? Math.round(gain / distKm) : 0;
+
+  // Header
+  document.getElementById('segTitle').textContent = 'Segment ' + (segIdx + 1);
+  document.getElementById('segDist').textContent   = distKm.toFixed(2) + ' km';
+  document.getElementById('segGain').textContent   = gain + ' m';
+  document.getElementById('segLoss').textContent   = loss + ' m';
+  document.getElementById('segRatio').textContent  = ratio;
+
+  // Badge terrain (ratio D+/km)
+  const terrain =
+    ratio > 150 ? 'Alpin' :
+    ratio > 100 ? 'Montagne raide' :
+    ratio > 60  ? 'Montagne' :
+    ratio > 30  ? 'Vallonné' :
+    ratio > 10  ? 'Faux plat' : 'Plat';
+
+  // Badge profil dominant
+  const netSlope = distKm > 0 ? (getElevAtKm(seg.to) - getElevAtKm(seg.from)) / distKm * 100 : 0;
+  const isColCrete = gain > 25 && loss > 25 && gain/Math.max(loss,1) >= 0.4 && gain/Math.max(loss,1) <= 2.5;
+  const infoBadge =
+    isColCrete                            ? '⛰ Col / Crête' :
+    gain > loss * 3 && netSlope >  5     ? '↗ Montée' :
+    loss > gain * 3 && netSlope < -5     ? '↘ Descente' : '⇄ Mixte';
+
+  // Badge colors
+  const terrainColor =
+    terrain === 'Alpin'          ? {bg:'rgba(192,132,252,0.12)',c:'#C084FC',bc:'rgba(192,132,252,0.3)'} :
+    terrain === 'Montagne raide' ? {bg:'rgba(248,81,73,0.12)',  c:'#F85149',bc:'rgba(248,81,73,0.28)'} :
+    terrain === 'Montagne'       ? {bg:'rgba(255,107,53,0.12)', c:'#FF6B35',bc:'rgba(255,107,53,0.3)'} :
+    terrain === 'Vallonné'       ? {bg:'rgba(227,179,65,0.12)', c:'#E3B341',bc:'rgba(227,179,65,0.3)'} :
+    terrain === 'Faux plat'      ? {bg:'rgba(63,185,80,0.12)',  c:'#3FB950',bc:'rgba(63,185,80,0.3)'}  :
+                                   {bg:'rgba(88,166,255,0.1)',  c:'#58A6FF',bc:'rgba(88,166,255,0.25)'};
+  const infoColor =
+    infoBadge === '↗ Montée'    ? {bg:'rgba(63,185,80,0.12)',  c:'#3FB950',bc:'rgba(63,185,80,0.3)'}  :
+    infoBadge === '↘ Descente'  ? {bg:'rgba(88,166,255,0.1)',  c:'#58A6FF',bc:'rgba(88,166,255,0.25)'} :
+    infoBadge === '⛰ Col / Crête' ? {bg:'rgba(227,179,65,0.12)',c:'#E3B341',bc:'rgba(227,179,65,0.3)'} :
+                                   {bg:'rgba(139,148,158,0.1)', c:'#8B949E',bc:'rgba(139,148,158,0.22)'};
+
+  const tb = document.getElementById('segBadgeTerrain');
+  tb.textContent = terrain;
+  tb.style.background = terrainColor.bg; tb.style.color = terrainColor.c; tb.style.borderColor = terrainColor.bc;
+  const ib = document.getElementById('segBadgeInfo');
+  ib.textContent = infoBadge;
+  ib.style.background = infoColor.bg; ib.style.color = infoColor.c; ib.style.borderColor = infoColor.bc;
+
+  // Restore controls
+  document.getElementById('segEffortSlider').value = effort;
+  setTechniUI(techni);
+  document.getElementById('cs1').value = c1;
+  document.getElementById('cs2').value = c2;
+  document.getElementById('cs3').value = c3;
+  document.getElementById('cs4').value = c4;
+
+  // Nav
+  const totalSegs = segs.length - 1;
+  document.getElementById('segNavLbl').textContent = 'Seg. ' + (segIdx+1) + ' / ' + totalSegs;
+  document.getElementById('segPrevBtn').disabled = segIdx <= 0;
+  document.getElementById('segNextBtn').disabled = segIdx >= totalSegs - 1;
+
+  // Recompute display
+  recomputeSegPanel();
+
+  // Also sync elevation highlight
+  currentSegIdx = segIdx;
+  updateSegNav();
+  if(gpx) drawElevation();
+}
+
+function recomputeSegPanel(){
+  if(!gpx || currentSegPanelIdx < 0) return;
+  // Always rebuild segments from current (sorted) waypoints
+  const sorted = [...waypoints].sort((a,b)=>a.km-b.km);
+  if(currentSegPanelIdx >= sorted.length - 1) return;
+  const wpA = sorted[currentSegPanelIdx];
+  const wpB = sorted[currentSegPanelIdx + 1];
+  if(!wpA || !wpB) return;
+  // Ensure correct order - fromKm must be < toKm
+  const fromKm = Math.min(wpA.km, wpB.km);
+  const toKm   = Math.max(wpA.km, wpB.km);
+
+  const ov   = segOverrides[currentSegPanelIdx] || {};
+  const effort  = parseInt(document.getElementById('segEffortSlider').value);
+  // Read techni from active button index
+  const techniActive = [...document.querySelectorAll('#techniBtns .tb')].findIndex(b=>b.className.includes('sel-'));
+  const techni  = techniActive >= 0 ? techniActive : (ov.techni ?? 0);
+  const c1 = parseInt(document.getElementById('cs1').value) / 100;
+  const c2 = parseInt(document.getElementById('cs2').value) / 100;
+  const c3 = parseInt(document.getElementById('cs3').value);
+  const c4 = parseInt(document.getElementById('cs4').value) / 100;
+
+  const distKm = toKm - fromKm;
+  const gain   = getElevGainForSeg(fromKm, toKm);
+  const loss   = getElevLossForSeg(fromKm, toKm);
+  const ratio  = distKm > 0 ? Math.round(gain / distKm) : 0;
+
+  // Update header stats live
+  document.getElementById('segDist').textContent  = distKm.toFixed(2) + ' km';
+  document.getElementById('segGain').textContent  = gain + ' m';
+  document.getElementById('segLoss').textContent  = loss + ' m';
+  document.getElementById('segRatio').textContent = ratio;
+
+  // Recompute badges
+  const terrain =
+    ratio > 150 ? 'Alpin' :
+    ratio > 100 ? 'Montagne raide' :
+    ratio > 60  ? 'Montagne' :
+    ratio > 30  ? 'Vallonné' :
+    ratio > 10  ? 'Faux plat' : 'Plat';
+  const netSlope = distKm > 0 ? (getElevAtKm(toKm) - getElevAtKm(fromKm)) / distKm * 100 : 0;
+  const isColCrete = gain > 25 && loss > 25 && gain/Math.max(loss,1) >= 0.4 && gain/Math.max(loss,1) <= 2.5;
+  const infoBadge =
+    isColCrete                        ? '⛰ Col / Crête' :
+    gain > loss*3 && netSlope >  5   ? '↗ Montée' :
+    loss > gain*3 && netSlope < -5   ? '↘ Descente' : '⇄ Mixte';
+  const terrainColor =
+    terrain==='Alpin'          ? {bg:'rgba(192,132,252,0.12)',c:'#C084FC',bc:'rgba(192,132,252,0.3)'} :
+    terrain==='Montagne raide' ? {bg:'rgba(248,81,73,0.12)',  c:'#F85149',bc:'rgba(248,81,73,0.28)'} :
+    terrain==='Montagne'       ? {bg:'rgba(255,107,53,0.12)', c:'#FF6B35',bc:'rgba(255,107,53,0.3)'} :
+    terrain==='Vallonné'       ? {bg:'rgba(227,179,65,0.12)', c:'#E3B341',bc:'rgba(227,179,65,0.3)'} :
+    terrain==='Faux plat'      ? {bg:'rgba(63,185,80,0.12)',  c:'#3FB950',bc:'rgba(63,185,80,0.3)'}  :
+                                 {bg:'rgba(88,166,255,0.1)',  c:'#58A6FF',bc:'rgba(88,166,255,0.25)'};
+  const infoColor =
+    infoBadge==='↗ Montée'       ? {bg:'rgba(63,185,80,0.12)',  c:'#3FB950',bc:'rgba(63,185,80,0.3)'}   :
+    infoBadge==='↘ Descente'     ? {bg:'rgba(88,166,255,0.1)',  c:'#58A6FF',bc:'rgba(88,166,255,0.25)'} :
+    infoBadge==='⛰ Col / Crête' ? {bg:'rgba(227,179,65,0.12)', c:'#E3B341',bc:'rgba(227,179,65,0.3)'}  :
+                                   {bg:'rgba(139,148,158,0.1)', c:'#8B949E',bc:'rgba(139,148,158,0.22)'};
+  const tb=document.getElementById('segBadgeTerrain');
+  tb.textContent=terrain; tb.style.background=terrainColor.bg; tb.style.color=terrainColor.c; tb.style.borderColor=terrainColor.bc;
+  const ib=document.getElementById('segBadgeInfo');
+  ib.textContent=infoBadge; ib.style.background=infoColor.bg; ib.style.color=infoColor.c; ib.style.borderColor=infoColor.bc;
+
+  const effortMult  = 1 + effort/100;
+  const techniCoeff = TECHNI_COEFF[techni];
+
+  // Pace = Naismith for segment
+  const basePaceKm = BASE_PACE_SOLIDE * getEffortMultiplier() * effortMult * techniCoeff * c1 * c2 * c4;
+  const movingMin  = distKm * basePaceKm;
+  const totalMin   = movingMin + c3;
+  const elapsedPaceKm = distKm > 0 ? totalMin / distKm : basePaceKm;
+
+  // Cumulative ETA to start of segment
+  const etaStartMin = estimateMinutesAtKm(fromKm);
+  const etaEndMin   = etaStartMin + totalMin;
+  document.getElementById('segEta').textContent    = fmtTime(startTimeVal, etaEndMin);
+  document.getElementById('segEtaSub').textContent = wpA.name + ' → ' + wpB.name;
+  document.getElementById('segDur').textContent    = fmtDuration(totalMin);
+
+  // Stats
+  document.getElementById('srMoving').textContent  = fmtDuration(movingMin);
+  document.getElementById('srStops').textContent   = c3 + ' min';
+  document.getElementById('srTotal').textContent   = fmtDuration(totalMin);
+  document.getElementById('srPace').textContent    = fmtPace(basePaceKm);
+  document.getElementById('srElapsed').textContent = fmtPace(elapsedPaceKm);
+  const vam = movingMin > 0 ? Math.round(gain / (movingMin/60)) : 0;
+  document.getElementById('srVam').textContent     = vam + ' m/h';
+
+  // Coeff display
+  document.getElementById('cv1').textContent = (parseInt(document.getElementById('cs1').value)/100).toFixed(2)+'×';
+  document.getElementById('cv2').textContent = (parseInt(document.getElementById('cs2').value)/100).toFixed(2)+'×';
+  document.getElementById('cv3').textContent = '+'+c3+' min';
+  document.getElementById('cv4').textContent = (parseInt(document.getElementById('cs4').value)/100).toFixed(2)+'×';
+
+  document.getElementById('ch1').textContent = ratio + ' m D+/km';
+  document.getElementById('ch3').textContent = getRefuelsInSeg(fromKm, toKm) + ' ravito(s)';
+  document.getElementById('ch4').textContent = 'Seg. '+(currentSegPanelIdx+1)+' / '+(sorted.length-1);
+
+  // Summary badges
+  const totalCoeff = (c1*c2*c4*techniCoeff*effortMult).toFixed(2);
+  document.getElementById('coeffSummary').textContent  = '×'+totalCoeff;
+  document.getElementById('pacingSummary').textContent = fmtPace(basePaceKm)+' min/km';
+}
+
+function estimateMinutesAtKm(km){
+  if(!gpx) return 0;
+  const bp = BASE_PACE_SOLIDE * getEffortMultiplier();
+  return km * bp;
+}
+
+// Somme des montées point par point dans le segment [fromKm, toKm]
+function getElevGainForSeg(fromKm, toKm){
+  if(!gpx) return 0;
+  const from = fromKm * 1000, to = toKm * 1000;
+  let gain = 0;
+  for(let i=1; i<gpx.points.length; i++){
+    const d0 = gpx.cumDist[i-1], d1 = gpx.cumDist[i];
+    if(d1 <= from) continue;
+    if(d0 >= to)   break;
+    const de = gpx.points[i].ele - gpx.points[i-1].ele;
+    if(de > 0) gain += de;
+  }
+  return Math.round(gain);
+}
+
+// Somme des descentes point par point dans le segment [fromKm, toKm]
+function getElevLossForSeg(fromKm, toKm){
+  if(!gpx) return 0;
+  const from = fromKm * 1000, to = toKm * 1000;
+  let loss = 0;
+  for(let i=1; i<gpx.points.length; i++){
+    const d0 = gpx.cumDist[i-1], d1 = gpx.cumDist[i];
+    if(d1 <= from) continue;
+    if(d0 >= to)   break;
+    const de = gpx.points[i].ele - gpx.points[i-1].ele;
+    if(de < 0) loss += Math.abs(de);
+  }
+  return Math.round(loss);
+}
+
+function getRefuelsInSeg(fromKm, toKm){
+  return waypoints.filter(wp=>isRefuel(wp.type)&&wp.km>fromKm&&wp.km<=toKm).length;
+}
+
+function onSegEffort(v){
+  if(currentSegPanelIdx < 0) return;
+  if(!segOverrides[currentSegPanelIdx]) segOverrides[currentSegPanelIdx] = {};
+  segOverrides[currentSegPanelIdx].effort = parseInt(v);
+  recomputeSegPanel();
+}
+
+function onCoeff(){
+  if(currentSegPanelIdx < 0) return;
+  if(!segOverrides[currentSegPanelIdx]) segOverrides[currentSegPanelIdx] = {};
+  // Save coeff values
+  segOverrides[currentSegPanelIdx].c1 = parseInt(document.getElementById('cs1').value);
+  segOverrides[currentSegPanelIdx].c2 = parseInt(document.getElementById('cs2').value);
+  segOverrides[currentSegPanelIdx].c3 = parseInt(document.getElementById('cs3').value);
+  segOverrides[currentSegPanelIdx].c4 = parseInt(document.getElementById('cs4').value);
+  recomputeSegPanel();
+}
+
+function setTechni(level){
+  if(currentSegPanelIdx < 0) return;
+  if(!segOverrides[currentSegPanelIdx]) segOverrides[currentSegPanelIdx] = {};
+  segOverrides[currentSegPanelIdx].techni = level;
+  setTechniUI(level);
+  recomputeSegPanel();
+}
+
+function setTechniUI(level){
+  const btns = document.querySelectorAll('#techniBtns .tb');
+  btns.forEach((b,i)=>{
+    b.className = 'tb' + (i===level?' '+TECHNI_CLASSES[i]:'');
+  });
+  document.getElementById('techniHint').textContent = TECHNI_HINTS[level];
+}
+
+function navigateSegPanel(dir){
+  const segs = getSegments();
+  const newIdx = Math.max(0, Math.min(segs.length-2, currentSegPanelIdx + dir));
+  loadSegPanel(newIdx);
+}
+
+function toggleSubsec(id){
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+
+function navigateSeg(dir){
+  const segs=getSegments();
+  currentSegIdx=Math.max(-1,Math.min(segs.length-2,currentSegIdx+dir));
+  updateSegNav();
+  if(gpx&&elevOpen) drawElevation();
+  // Open segment panel when a specific segment is selected
+  if(currentSegIdx>=0) openSegPanel(currentSegIdx);
+  else closeSegPanel();
+  if(currentSegIdx>=0){
+    // Zoom Leaflet to segment bounds
+    const seg=segs[currentSegIdx+1];
+    if(seg&&leafletMap&&gpx){
+      const pts=gpx.points.filter((_,j)=>gpx.cumDist[j]>=seg.from*1000&&gpx.cumDist[j]<=seg.to*1000);
+      if(pts.length>1) leafletMap.fitBounds(pts.map(p=>[p.lat,p.lon]),{padding:[40,40]});
+    }
+  } else {
+    if(leafletMap&&gpx) fitMapToTrack();
+  }
+}
+
+function updateSegNav(){
+  const segs=getSegments();
+  const isEntire = currentSegIdx===-1;
+  const seg = isEntire ? null : segs[currentSegIdx+1];
+  // Main label: segment number or "Entire Race"
+  const label = isEntire ? 'Entire Race' : `Segment ${currentSegIdx+1} / ${segs.length-1}`;
+  // Subtitle: "WpA — WpB"
+  const subtitle = seg ? `${seg.wpA.name} — ${seg.wpB.name}` : '';
+  const el=document.getElementById('elevSegLabel');
+  const sub=document.getElementById('elevSegSubtitle');
+  const prev=document.getElementById('btnSegPrev');
+  const next=document.getElementById('btnSegNext');
+  if(el) el.textContent=label;
+  if(sub) sub.textContent=subtitle;
+  if(prev) prev.disabled=isEntire;
+  if(next) next.disabled=currentSegIdx>=segs.length-2;
+}
+
+// ── Per-type visibility toggles ─────────────────────────────
+const typeVisible = { waypoint: true, 'refuel-light': true, 'refuel-full': true };
+
+function toggleTypeFilter(type){
+  typeVisible[type] = !typeVisible[type];
+  const btn = document.getElementById('ftype-' + type);
+  if(btn) btn.classList.toggle('active', typeVisible[type]);
+  if(gpx){ drawElevation(); drawLeafletWaypoints(); }
+}
+
+// Filter helper — which waypoints to show (respects per-type toggles)
+function filteredWaypoints(){
+  return waypoints.filter(wp => {
+    if(wp.type === 'start' || wp.type === 'end') return true; // always show
+    if(isRefuel(wp.type)) return typeVisible[wp.type] ?? true;
+    return typeVisible['waypoint'] ?? true;
+  });
+}
+function switchMainView(v, btn){ switchBottomView(v === 'table' ? 'table' : 'elev', btn); }
+
+// Keep switchView as no-op (map always visible behind panel)
+function switchView(v){ switchBottomView(v === 'table' ? 'table' : 'elev', null); }
+
+// ══════════════════════════════════════════
+// EXPORTS
+// ══════════════════════════════════════════
+async function exportPlanCsv(){
+  if(!gpx){notify('Aucune donnée','err');return;}
+  const dk=gpx.totalDist/1000,bp=getBasePace();
+  let csv='Point,km,Élévation,D+,ETA,Type,Notes\n';
+  [...waypoints].sort((a,b)=>a.km-b.km).forEach(wp=>{
+    csv+=`"${wp.name}",${wp.km},${Math.round(getElevAtKm(wp.km))},${Math.round(getCumGainAtKm(wp.km))},${fmtTime(startTimeVal,wp.km*bp+stopMin*(wp.km/dk))},${wp.type},"${wp.notes||''}"\n`;
+  });
+  const blob=new Blob([`${gpx.name}\n${dk.toFixed(2)} km | D+ ${Math.round(gpx.elevGain)}m\n\n`+csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=gpx.name.replace(/[^a-z0-9]/gi,'_')+'_plan.csv';a.click();
+  notify('✓ CSV téléchargé','ok');
+}
+function exportPdf(){if(!gpx){notify('Aucune donnée','err');return;}window.print();}
+
+// ══════════════════════════════════════════
+// SAMPLE DATA
+// ══════════════════════════════════════════
+function loadSampleData(){
+  const N=500,points=[];let lat=46.020,lon=7.215,ele=820;
+  const profile=[0,0.15,0.4,0.6,0.65,0.9,1.0],ep=[820,1400,2200,2780,2600,1200,820];
+  for(let i=0;i<N;i++){
+    const t=i/(N-1);let te=820;
+    for(let j=0;j<profile.length-1;j++){if(t>=profile[j]&&t<=profile[j+1]){te=ep[j]+(ep[j+1]-ep[j])*(t-profile[j])/(profile[j+1]-profile[j]);break;}}
+    ele+=(te-ele)*0.08+(Math.random()-0.5)*40;ele=Math.max(800,Math.min(2900,ele));
+    lat+=(Math.random()-0.47)*0.0025;lon+=(Math.random()-0.3)*0.0038;
+    points.push({lat,lon,ele});
+  }
+  processTrack(points,'Verbier Trail 42K · Exemple');
+}
+
+// ══════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════
+function notify(msg,type){
+  const n=document.getElementById('notif');n.textContent=msg;
+  n.className='notif show '+(type||'ok');clearTimeout(n._t);
+  n._t=setTimeout(()=>n.classList.remove('show'),3200);
+}
+window.addEventListener('resize',()=>{
+  if(leafletMap) leafletMap.invalidateSize();
+  if(gpx && elevOpen) requestAnimationFrame(()=>{ void document.getElementById('elevChartWrap')?.offsetHeight; drawElevation(); });
+});
+
+// Init
+initAllSliderFills();
+initSections();
+refreshLibrary();
+</script>
+</body>
+</html>

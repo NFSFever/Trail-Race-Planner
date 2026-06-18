@@ -1482,9 +1482,11 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
 
         <!-- Legend (only when elevation shown) -->
         <div class="elev-legend" id="elevLegend">
-          <span class="elev-legend-item"><span class="elev-legend-line" style="background:var(--orange);"></span>Elevation</span>
-          <span class="elev-legend-item"><span class="elev-legend-line" style="background:#58A6FF;"></span>Estimated pace</span>
-          <span class="elev-legend-item"><span class="elev-legend-line" style="background:#58A6FF;width:20px;height:1px;background:none;border-top:1px dashed #58A6FF;"></span>Avg segment pace</span>
+          <span class="elev-legend-item"><span class="elev-legend-line" style="background:var(--orange);height:2px;"></span>Elevation</span>
+          <span class="elev-legend-item"><span class="elev-legend-line" style="background:#58A6FF;height:1px;"></span>Estimated pace</span>
+          <span class="elev-legend-item"><span class="elev-legend-line" style="background:none;border-top:1px dashed rgba(88,166,255,0.6);height:0;margin-top:1px;"></span>Avg segment pace</span>
+          <span class="elev-legend-item"><span class="elev-legend-line" style="background:none;border-top:1px dashed #FF6B35;height:0;margin-top:1px;"></span>Ravito</span>
+          <span class="elev-legend-item"><span class="elev-legend-line" style="width:1px;height:10px;background:#58A6FF;"></span>Waypoint</span>
         </div>
 
       </div><!-- /elev-float -->
@@ -2357,7 +2359,7 @@ function drawElevation(){
     return;
   }
 
-  const pad={l:52,r:58,t:16,b:40}; // r=58 for pace axis right
+  const pad={l:52,r:58,t:52,b:36}; // t=52: room for icons+ETA above chart, b=36: room for D+/D- inside
   const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
 
   svg.setAttribute('width', W);
@@ -2457,14 +2459,10 @@ function drawElevation(){
     paceSamples.push({ x: xS(dist[i]), pace: paceSmoothed[i] });
   }
 
-  // Pace scale right axis
-  const pVals = paceSamples.map(p=>p.pace);
-  const minPace = Math.max(1, Math.floor(Math.min(...pVals)));
-  const maxPace = Math.min(15, Math.ceil(Math.max(...pVals)));
+  // Pace scale right axis — fixed 3:00 to 25:00 min/km
+  const minPace = 3, maxPace = 25;
   const yP = pace => pad.t + cH * (pace - minPace) / (maxPace - minPace);
-  const paceTickStep = (maxPace-minPace) <= 6 ? 1 : (maxPace-minPace) <= 10 ? 2 : 3;
-  const paceTicks = [];
-  for(let p=minPace; p<=maxPace; p+=paceTickStep) paceTicks.push(p);
+  const paceTicks = [3, 5, 8, 12, 18, 25];
   const pacePath = paceSamples.map((p,i)=>`${i===0?'M':'L'}${p.x.toFixed(1)},${yP(p.pace).toFixed(1)}`).join(' ');
 
   // Segment avg pace dashed lines — now after yP is defined
@@ -2499,26 +2497,98 @@ function drawElevation(){
     }
   }
 
-  // Waypoints
+  // ── Waypoints: new style matching draft v3 ──────────────────
   let wpSvg='';
   const visWps=filteredWaypoints();
-  const usedLX=[];
-  visWps.forEach(wp=>{
-    const x=xS(wp.km*1000);
-    const color=wp.type==='refuel-full'?'#FF6B35':wp.type==='refuel-light'?'#58A6FF':wp.type==='start'?'#3FB950':wp.type==='end'?'#F85149':'#8B949E';
-    const ey=yS(getElevAtKm(wp.km));
-    // Vertical dashed line
-    wpSvg+=`<line x1="${x.toFixed(1)}" y1="${pad.t}" x2="${x.toFixed(1)}" y2="${pad.t+cH}" stroke="${color}" stroke-width="1" stroke-dasharray="4,3" opacity="0.7"/>`;
-    // Dot on elevation line
-    wpSvg+=`<circle cx="${x.toFixed(1)}" cy="${ey.toFixed(1)}" r="5" fill="${color}" stroke="rgba(10,12,18,0.9)" stroke-width="2"/>`;
-    // Label below x-axis
-    const lbl=wp.name.length>12?wp.name.substring(0,12)+'…':wp.name;
-    const tx=Math.max(pad.l+4,Math.min(W-pad.r-4,x));
-    if(!usedLX.some(px=>Math.abs(px-tx)<44)){
-      usedLX.push(tx);
-      wpSvg+=`<text x="${tx.toFixed(1)}" y="${pad.t+cH+28}" text-anchor="middle" fill="${color}" font-size="9" font-weight="500" font-family="-apple-system,Segoe UI,sans-serif">${lbl}</text>`;
+  const sortedVisWps=[...waypoints].sort((a,b)=>a.km-b.km); // all wps for D+/D-
+
+  const WP_ICON_Y  = pad.t - 16;  // centre of icon (above chart)
+  const WP_ETA_Y   = pad.t - 28;  // ETA text above icon
+  const D_Y        = pad.t + cH - 5; // D+/D- text inside chart near bottom
+
+  // Helper: icon SVG at position (cx, cy)
+  function wpIconSvgEl(type, cx, cy, color){
+    if(type==='start'){
+      return `<circle cx="${cx}" cy="${cy}" r="6" fill="${color}"/><circle cx="${cx}" cy="${cy}" r="2.2" fill="rgba(13,17,23,0.9)"/>`;
+    } else if(type==='end'){
+      return `<rect x="${cx-5}" y="${cy-4}" width="10" height="7" fill="${color}" rx="1"/>
+        <rect x="${cx-5}" y="${cy-4}" width="5" height="3.5" fill="rgba(13,17,23,0.6)"/>
+        <rect x="${cx}"   y="${cy-0.5}" width="5" height="3.5" fill="rgba(13,17,23,0.6)"/>
+        <line x1="${cx-5}" y1="${cy-4}" x2="${cx-5}" y2="${cy+7}" stroke="${color}" stroke-width="1.5"/>`;
+    } else if(type==='refuel-full'){
+      // drop + fork
+      return `<path d="M${cx-4},${cy-7} C${cx-4},${cy-7} ${cx-8},${cy-1} ${cx-8},${cy+2} C${cx-8},${cy+4.5} ${cx-6.2},${cy+6} ${cx-4},${cy+6} C${cx-1.8},${cy+6} ${cx},${cy+4.5} ${cx},${cy+2} C${cx},${cy-1} ${cx-4},${cy-7} ${cx-4},${cy-7}Z" fill="${color}"/>
+        <line x1="${cx+3}" y1="${cy-7}" x2="${cx+3}" y2="${cy+6}" stroke="${color}" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="${cx+1.5}" y1="${cy-7}" x2="${cx+1.5}" y2="${cy-3.5}" stroke="${color}" stroke-width="1" stroke-linecap="round"/>
+        <line x1="${cx+4.5}" y1="${cy-7}" x2="${cx+4.5}" y2="${cy-3.5}" stroke="${color}" stroke-width="1" stroke-linecap="round"/>
+        <path d="M${cx+1.5},${cy-3.5} Q${cx+3},${cy-2} ${cx+4.5},${cy-3.5}" stroke="${color}" stroke-width="1" fill="none" stroke-linecap="round"/>`;
+    } else if(isRefuel(type)){
+      // drop only
+      return `<path d="M${cx},${cy-7} C${cx},${cy-7} ${cx-4},${cy-1} ${cx-4},${cy+2} C${cx-4},${cy+4.5} ${cx-2.2},${cy+6} ${cx},${cy+6} C${cx+2.2},${cy+6} ${cx+4},${cy+4.5} ${cx+4},${cy+2} C${cx+4},${cy-1} ${cx},${cy-7}Z" fill="${color}"/>`;
+    } else {
+      // pin
+      return `<path d="M${cx},${cy-8} C${cx-3.5},${cy-8} ${cx-6},${cy-5.5} ${cx-6},${cy-2.5} C${cx-6},${cy+1.5} ${cx},${cy+8} ${cx},${cy+8} C${cx},${cy+8} ${cx+6},${cy+1.5} ${cx+6},${cy-2.5} C${cx+6},${cy-5.5} ${cx+3.5},${cy-8} ${cx},${cy-8}Z" fill="${color}"/>
+        <circle cx="${cx}" cy="${cy-2.5}" r="2" fill="rgba(13,17,23,0.85)"/>`;
     }
+  }
+
+  visWps.forEach(wp=>{
+    const x   = xS(wp.km*1000);
+    const isStart = wp.type==='start';
+    const isEnd   = wp.type==='end';
+    const isRavito = isRefuel(wp.type);
+    const color = isRavito ? '#FF6B35' : isStart ? '#3FB950' : isEnd ? '#F85149' : '#58A6FF';
+
+    // Vertical bar — not for start/end
+    // Ravito = dashed, Waypoint = solid
+    if(!isStart && !isEnd){
+      const dash = isRavito ? 'stroke-dasharray="4,3"' : '';
+      wpSvg += `<line x1="${x.toFixed(1)}" y1="${pad.t}" x2="${x.toFixed(1)}" y2="${(pad.t+cH).toFixed(1)}" stroke="${color}" stroke-width="0.8" ${dash} opacity="0.75"/>`;
+    }
+
+    // Dot on elevation profile
+    const ey = yS(getElevAtKm(wp.km));
+    wpSvg += `<circle cx="${x.toFixed(1)}" cy="${ey.toFixed(1)}" r="4" fill="${color}" stroke="rgba(10,12,18,0.9)" stroke-width="1.5"/>`;
+
+    // ETA above icon
+    const etaStr = fmtTime(startTimeVal, getCumMinAtKm(wp.km));
+    wpSvg += `<text x="${x.toFixed(1)}" y="${WP_ETA_Y}" text-anchor="middle" fill="${color}" font-size="8.5" font-weight="500" font-family="-apple-system,Segoe UI,sans-serif" opacity="0.9">${etaStr}</text>`;
+
+    // Icon centred on bar, just above chart
+    wpSvg += wpIconSvgEl(wp.type, x, WP_ICON_Y, color);
+
+    // Km label on x-axis (only at waypoints, in their color)
+    wpSvg += `<text x="${x.toFixed(1)}" y="${(pad.t+cH+14).toFixed(1)}" text-anchor="middle" fill="${color}" font-size="8.5" font-family="-apple-system,Segoe UI,sans-serif" opacity="0.8">${wp.km.toFixed(1)} km</text>`;
   });
+
+  // D+/D- per segment + distance — inside chart with pill background
+  if(sortedVisWps.length >= 2){
+    for(let s=1; s<sortedVisWps.length; s++){
+      const wa = sortedVisWps[s-1], wb = sortedVisWps[s];
+      const xA = xS(wa.km*1000), xB = xS(wb.km*1000);
+      const cx = (xA+xB)/2;
+      const gn = getElevGainForSeg(wa.km, wb.km);
+      const ls = getElevLossForSeg(wa.km, wb.km);
+      const distSeg = (wb.km - wa.km).toFixed(1);
+      const segW = xB - xA;
+
+      // D+/D- pill at bottom of chart
+      const dPillW = Math.min(segW - 8, 110);
+      const dPillH = 14;
+      const dPillY = pad.t + cH - dPillH - 4;
+      wpSvg += `<rect x="${(cx-dPillW/2).toFixed(1)}" y="${dPillY.toFixed(1)}" width="${dPillW.toFixed(1)}" height="${dPillH}" rx="3" fill="rgba(10,14,22,0.55)"/>`;
+      wpSvg += `<text x="${cx.toFixed(1)}" y="${(dPillY+10).toFixed(1)}" text-anchor="middle" font-size="8.5" font-family="-apple-system,Segoe UI,sans-serif">
+        <tspan fill="#3FB950" font-weight="600">↑${gn}m</tspan><tspan fill="rgba(255,255,255,0.25)" font-size="7">  </tspan><tspan fill="#F85149" font-weight="600">↓${ls}m</tspan>
+      </text>`;
+
+      // Distance pill at top of chart
+      const distPillW = Math.min(segW - 8, 64);
+      const distPillH = 14;
+      const distPillY = pad.t + 4;
+      wpSvg += `<rect x="${(cx-distPillW/2).toFixed(1)}" y="${distPillY.toFixed(1)}" width="${distPillW.toFixed(1)}" height="${distPillH}" rx="3" fill="rgba(10,14,22,0.55)"/>`;
+      wpSvg += `<text x="${cx.toFixed(1)}" y="${(distPillY+10).toFixed(1)}" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="8.5" font-weight="500" font-family="-apple-system,Segoe UI,sans-serif">${distSeg} km</text>`;
+    }
+  }
 
   // Hover cursor line
   const cursorId='ec-cursor-'+Math.random().toString(36).slice(2);
@@ -2548,7 +2618,7 @@ ${xTicks.map(t=>`<line x1="${t.x.toFixed(1)}" y1="${pad.t}" x2="${t.x.toFixed(1)
 <path d="${elPathD}" fill="none" stroke="#FF6B35" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#chartClip)"/>
 
 <!-- Pace curve (blue, right axis) -->
-<path d="${pacePath}" fill="none" stroke="#58A6FF" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#chartClip)" opacity="0.85"/>
+<path d="${pacePath}" fill="none" stroke="#58A6FF" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#chartClip)" opacity="0.9"/>
 
 <!-- Segment avg pace dashed lines -->
 ${segAvgLines.join('')}
@@ -2569,8 +2639,7 @@ ${wpSvg}
 <!-- Y axis labels (elevation, left) -->
 ${yTicks.map(t=>`<text x="${pad.l-8}" y="${(t.y+4).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,0.45)" font-size="10" font-family="-apple-system,Segoe UI,sans-serif">${t.e} m</text>`).join('')}
 
-<!-- X axis labels (km, bottom) -->
-${xTicks.map(t=>`<text x="${t.x.toFixed(1)}" y="${(pad.t+cH+14).toFixed(1)}" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="10" font-family="-apple-system,Segoe UI,sans-serif">${t.label}</text>`).join('')}
+<!-- X axis labels removed — shown per waypoint in wpSvg -->
 
 
 <!-- X axis line -->

@@ -1125,8 +1125,6 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
     <div class="topbar-sep"></div>
     <span class="app-topbar-badge" id="appTopbarBadge">GPX</span>
     <button class="app-topbar-action" onclick="saveCurrentSession()">💾 Sauvegarder</button>
-    <button class="app-topbar-action" onclick="exportPlanCsv()">📊 CSV</button>
-    <button class="app-topbar-action" onclick="exportPdf()">🖨️ PDF</button>
   </div>
 
   <div class="app-body">
@@ -1782,10 +1780,9 @@ function parseGPX(text,fallbackName,isTraining=false){
 function haversine(a,b,c,d){const R=6371000,r=Math.PI/180,dL=(c-a)*r,dO=(d-b)*r,x=Math.sin(dL/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
 
 function processTrack(points,name,isTraining=false){
-  // Smooth elevation with 10-pt moving avg (window of 5 each side)
-  // Larger window filters GPS noise while preserving real D+/D-
+  // Light 3-pt smoothing for display & grade (preserves real terrain shape)
   const sm=points.map((p,i)=>{
-    const w=points.slice(Math.max(0,i-5),i+6);
+    const w=points.slice(Math.max(0,i-1),i+2);
     return{...p,ele:w.reduce((s,x)=>s+x.ele,0)/w.length};
   });
 
@@ -1796,11 +1793,15 @@ function processTrack(points,name,isTraining=false){
     cumDist.push(totalDist);
   }
 
-  // Compute D+/D- on smoothed points without threshold (window filters noise)
-  let elevGain=0, elevLoss=0;
-  for(let i=1;i<sm.length;i++){
-    const de=sm[i].ele-sm[i-1].ele;
-    if(de>0) elevGain+=de; else elevLoss+=Math.abs(de);
+  // Compute D+/D- on RAW points with accumulation threshold 1.5m.
+  // Accumulation filters GPS noise without flattening real climbs —
+  // validated against official traces (Verbier 2977m, Mont-Blanc 6256m).
+  let elevGain=0, elevLoss=0, acc=0;
+  for(let i=1;i<points.length;i++){
+    const de=points[i].ele-points[i-1].ele;
+    acc+=de;
+    if(acc>1.5){ elevGain+=acc; acc=0; }
+    else if(acc<-1.5){ elevLoss+=Math.abs(acc); acc=0; }
   }
   // ── Detect Switzerland (before gpx assignment) ───────────────
   const lats=sm.map(p=>p.lat), lons=sm.map(p=>p.lon);
@@ -2183,7 +2184,7 @@ function renderWaypoints(){
 }
 function estimateArrivalTime(km){if(!gpx)return'--';return fmtTime(startTimeVal,getCumMinAtKm(km));}
 function getElevAtKm(km){if(!gpx)return 0;const d=km*1000,idx=gpx.cumDist.findIndex(c=>c>=d);return idx<0?gpx.points[gpx.points.length-1].ele:gpx.points[Math.min(idx,gpx.points.length-1)].ele;}
-function getCumGainAtKm(km){if(!gpx)return 0;const d=km*1000;let g=0;for(let i=1;i<gpx.points.length;i++){if(gpx.cumDist[i]>d)break;const de=gpx.points[i].ele-gpx.points[i-1].ele;if(de>0)g+=de;}return g;}
+function getCumGainAtKm(km){if(!gpx)return 0;const d=km*1000;let g=0,acc=0;for(let i=1;i<gpx.points.length;i++){if(gpx.cumDist[i]>d)break;const de=gpx.points[i].ele-gpx.points[i-1].ele;acc+=de;if(acc>1.5){g+=acc;acc=0;}else if(acc<-1.5){acc=0;}}return g;}
 function updateWpStop(i, v){
   // Save pending name from DOM
   const nameInp = document.querySelectorAll('.wp-name-input')[i];
@@ -4022,28 +4023,32 @@ function estimateMinutesAtKm(km){
 function getElevGainForSeg(fromKm, toKm){
   if(!gpx) return 0;
   const from = fromKm * 1000, to = toKm * 1000;
-  let gain = 0;
+  let gain = 0, acc = 0;
   for(let i=1; i<gpx.points.length; i++){
     const d0 = gpx.cumDist[i-1], d1 = gpx.cumDist[i];
     if(d1 <= from) continue;
     if(d0 >= to)   break;
     const de = gpx.points[i].ele - gpx.points[i-1].ele;
-    if(de > 0) gain += de;
+    acc += de;
+    if(acc > 1.5){ gain += acc; acc = 0; }
+    else if(acc < -1.5){ acc = 0; }
   }
   return Math.round(gain);
 }
 
-// Somme des descentes point par point dans le segment [fromKm, toKm]
+// Somme des descentes avec accumulation 1.5m dans le segment [fromKm, toKm]
 function getElevLossForSeg(fromKm, toKm){
   if(!gpx) return 0;
   const from = fromKm * 1000, to = toKm * 1000;
-  let loss = 0;
+  let loss = 0, acc = 0;
   for(let i=1; i<gpx.points.length; i++){
     const d0 = gpx.cumDist[i-1], d1 = gpx.cumDist[i];
     if(d1 <= from) continue;
     if(d0 >= to)   break;
     const de = gpx.points[i].ele - gpx.points[i-1].ele;
-    if(de < 0) loss += Math.abs(de);
+    acc += de;
+    if(acc < -1.5){ loss += Math.abs(acc); acc = 0; }
+    else if(acc > 1.5){ acc = 0; }
   }
   return Math.round(loss);
 }

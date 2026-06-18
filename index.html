@@ -3197,7 +3197,7 @@ function cheatEffortMult(){
 function buildCheatsheetSvg(scale){
   scale = scale || 1;
   const W = 2400, H = 1000;
-  const pad = { l:140, r:130, t:200, b:210 };
+  const pad = { l:230, r:150, t:240, b:280 };
   const cW = W - pad.l - pad.r;
   const cH = H - pad.t - pad.b;
 
@@ -3210,20 +3210,17 @@ function buildCheatsheetSvg(scale){
   const xS = d => pad.l + (d/maxDist)*cW;
   const yS = e => pad.t + cH*(1-(e-eLo)/(eHi-eLo));
 
-  // Pace scale fixed 3-25
   const minPace=3, maxPace=25;
   const yP = p => pad.t + cH*(p-minPace)/(maxPace-minPace);
 
-  // Waypoints filtered by split mode
   const allWps = [...waypoints].sort((a,b)=>a.km-b.km);
   const splitWps = cheatSplit==='refuel'
     ? allWps.filter(w=>isRefuel(w.type)||w.type==='start'||w.type==='end')
     : allWps;
 
-  // Effort mult for scenario
   const effMult = cheatEffortMult();
 
-  // ── Compute pace curve with scenario effort ──
+  // Grades + mults
   const SMOOTH=25;
   const grades = pts.map((_,i)=>{
     let i0=i,i1=i,dB=0,dF=0;
@@ -3236,18 +3233,7 @@ function buildCheatsheetSvg(scale){
     return horiz>1?Math.max(-25,Math.min(25,(dEle/horiz)*100)):0;
   });
   const mults = grades.map(g=>paceMultiplierAbaque(g));
-  const globalMeanMult = gpx._globalMeanMult || (mults.reduce((a,b)=>a+b,0)/mults.length);
 
-  // Per-segment base pace (with scenario effort applied)
-  function segPaceAt(km){
-    let segIdx=0;
-    for(let s=1;s<allWps.length;s++){
-      if(km>=allWps[s-1].km&&km<=allWps[s].km){segIdx=s-1;break;}
-      if(s===allWps.length-1)segIdx=s-1;
-    }
-    return getSegBasePace(segIdx) / getEffortMultiplier() * effMult;
-  }
-  // raw pace per point
   const rawPaces = pts.map((p,i)=>{
     const km=dist[i]/1000;
     let segIdx=0;
@@ -3261,7 +3247,6 @@ function buildCheatsheetSvg(scale){
     const segBP=(getSegBasePace(segIdx)/getEffortMultiplier())*effMult;
     return segBP * mults[i] / (segMeanMult||1);
   });
-  // distance-smoothed
   const SMP=80;
   const paceSmooth=rawPaces.map((_,i)=>{
     let sum=rawPaces[i],cnt=1,j=i-1,dB=0,k=i+1,dF=0;
@@ -3270,7 +3255,6 @@ function buildCheatsheetSvg(scale){
     return sum/cnt;
   });
 
-  // ETA helper with scenario effort
   function cheatCumMin(targetKm){
     let cum=0;
     for(let i=1;i<allWps.length;i++){
@@ -3283,41 +3267,47 @@ function buildCheatsheetSvg(scale){
     }
     return cum;
   }
+  function fmtHMS(min){
+    const h=Math.floor(min/60),mn=Math.floor(min%60),sc=Math.round((min%1)*60);
+    return h>0?`${h}:${mn<10?'0':''}${mn}:${sc<10?'0':''}${sc}`:`${mn}:${sc<10?'0':''}${sc}`;
+  }
 
   const L = cheatLabelState;
   let svg = '';
 
-  // ── Title (top-left, clear of chart) ──
+  // ── Title (top-left) ──
   const raceName = gpx.name || 'Parcours';
   const totKm = (maxDist/1000).toFixed(1);
   const dPlus = Math.round(gpx.elevGain);
   const startStr = startTimeVal || '07:30';
-  svg += `<text x="40" y="50" font-family="Arial,sans-serif" font-size="36" font-weight="700" fill="#1a1a1a">${raceName} · ${totKm} km · ${dPlus} m D+</text>`;
-  svg += `<text x="40" y="84" font-family="Arial,sans-serif" font-size="22" fill="#999">Départ ${startStr}</text>`;
+  svg += `<text x="40" y="56" font-family="Arial,sans-serif" font-size="38" font-weight="700" fill="#1a1a1a">${raceName} \u00b7 ${totKm} km \u00b7 ${dPlus} m D+</text>`;
+  svg += `<text x="40" y="92" font-family="Arial,sans-serif" font-size="22" fill="#999">D\u00e9part ${startStr}</text>`;
 
-  // ── Row labels (left axis annotations, right-aligned in left margin) ──
-  if(L.eta)     svg += `<text x="${pad.l-16}" y="${pad.t-128}" text-anchor="end" font-family="Arial,sans-serif" font-size="16" font-weight="600" fill="#999" letter-spacing="0.5">ETA (24H)</text>`;
-  if(L.segDist) svg += `<text x="${pad.l-16}" y="${pad.t-90}" text-anchor="end" font-family="Arial,sans-serif" font-size="16" font-weight="600" fill="#999" letter-spacing="0.5">DIST. SEG.</text>`;
-  if(L.segTime) svg += `<text x="${pad.l-16}" y="${pad.t-64}" text-anchor="end" font-family="Arial,sans-serif" font-size="16" font-weight="600" fill="#999" letter-spacing="0.5">TEMPS SEG.</text>`;
+  // ── TOP LEFT ROW LABELS ──
+  const TOP_ETA_Y    = pad.t - 150;
+  const TOP_DIST_Y   = pad.t - 70;
+  const TOP_MOVE_Y   = pad.t - 44;
+  if(L.eta)     svg += `<text x="${pad.l-24}" y="${TOP_ETA_Y+5}" text-anchor="end" font-family="Arial,sans-serif" font-size="17" font-weight="600" fill="#999" letter-spacing="0.5">ETA (24H)</text>`;
+  if(L.segDist) svg += `<text x="${pad.l-24}" y="${TOP_DIST_Y}" text-anchor="end" font-family="Arial,sans-serif" font-size="17" font-weight="600" fill="#999" letter-spacing="0.5">DIST. SEG.</text>`;
+  if(L.segTime) svg += `<text x="${pad.l-24}" y="${TOP_MOVE_Y}" text-anchor="end" font-family="Arial,sans-serif" font-size="17" font-weight="600" fill="#999" letter-spacing="0.5">TEMPS SEG.</text>`;
 
-  // ── Grid + Y axis (elevation) ──
+  // ── Grid + elevation Y axis ──
   for(let e=eLo;e<=eHi;e+=eStep){
     const y=yS(e);
     svg += `<line x1="${pad.l}" y1="${y}" x2="${pad.l+cW}" y2="${y}" stroke="#eee" stroke-width="1"/>`;
-    svg += `<text x="${pad.l-12}" y="${y+5}" text-anchor="end" font-family="Arial,sans-serif" font-size="18" fill="#aaa">${e} m</text>`;
+    svg += `<text x="${pad.l-14}" y="${y+6}" text-anchor="end" font-family="Arial,sans-serif" font-size="19" fill="#aaa">${e} m</text>`;
   }
   // Pace right axis
   [3,5,8,12,18,25].forEach(p=>{
     const m=Math.floor(p),s=Math.round((p-m)*60);
-    svg += `<text x="${pad.l+cW+14}" y="${yP(p)+5}" font-family="Arial,sans-serif" font-size="16" fill="#7fb3e0">${m}:${s<10?'0':''}${s} min/km</text>`;
+    svg += `<text x="${pad.l+cW+16}" y="${yP(p)+6}" font-family="Arial,sans-serif" font-size="17" fill="#7fb3e0">${m}:${s<10?'0':''}${s} min/km</text>`;
   });
 
-  // ── Elevation area + line ──
+  // ── Elevation line only (no fill) ──
   const elPath = pts.map((p,i)=>`${i===0?'M':'L'}${xS(dist[i]).toFixed(1)},${yS(p.ele).toFixed(1)}`).join(' ');
-  svg += `<path d="${elPath} L${xS(maxDist).toFixed(1)},${pad.t+cH} L${pad.l},${pad.t+cH} Z" fill="#FFA94D" fill-opacity="0.18"/>`;
   svg += `<path d="${elPath}" fill="none" stroke="#F08C2E" stroke-width="3.5" stroke-linejoin="round"/>`;
 
-  // ── Pace curve (smooth) ──
+  // ── Pace curve smooth ──
   const pStep=Math.max(1,Math.floor(pts.length/400));
   const paceXY=[];
   for(let i=0;i<pts.length;i+=pStep) paceXY.push({x:xS(dist[i]),y:yP(paceSmooth[i])});
@@ -3329,103 +3319,102 @@ function buildCheatsheetSvg(scale){
     const c2x=p2.x-(p3.x-p1.x)*t,c2y=p2.y-(p3.y-p1.y)*t;
     pPath+=` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
   }
-  svg += `<path d="${pPath}" fill="none" stroke="#1E6FBF" stroke-width="2" opacity="0.9"/>`;
+  svg += `<path d="${pPath}" fill="none" stroke="#1E6FBF" stroke-width="2" opacity="0.85"/>`;
 
-  // ── Avg segment pace dashed + seg annotations ──
+  // ── Segment-level annotations (vertical bars, avg pace, top dist/time) ──
   for(let s=1;s<allWps.length;s++){
     const wa=allWps[s-1],wb=allWps[s];
     const xA=xS(wa.km*1000),xB=xS(wb.km*1000),cx=(xA+xB)/2;
     const segBP=(getSegBasePace(s-1)/getEffortMultiplier())*effMult;
     const yAvg=yP(segBP);
     if(yAvg>=pad.t&&yAvg<=pad.t+cH){
-      svg+=`<line x1="${xA}" y1="${yAvg}" x2="${xB}" y2="${yAvg}" stroke="#5B9BD5" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.6"/>`;
+      svg+=`<line x1="${xA}" y1="${yAvg}" x2="${xB}" y2="${yAvg}" stroke="#5B9BD5" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.7"/>`;
       const m=Math.floor(segBP),sec=Math.round((segBP-m)*60);
-      svg+=`<text x="${cx}" y="${yAvg-6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#1E6FBF">${m}:${sec<10?'0':''}${sec}</text>`;
+      svg+=`<text x="${cx}" y="${yAvg-8}" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" fill="#1E6FBF">${m}:${sec<10?'0':''}${sec}</text>`;
     }
-    // Segment distance + moving time (top)
     if(L.segDist){
-      svg+=`<text x="${cx}" y="${pad.t-90}" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" fill="#333">${(wb.km-wa.km).toFixed(2)} km</text>`;
+      svg+=`<text x="${cx}" y="${TOP_DIST_Y}" text-anchor="middle" font-family="Arial,sans-serif" font-size="20" fill="#333">${(wb.km-wa.km).toFixed(2)} km</text>`;
     }
     if(L.segTime){
       const segMin=(wb.km-wa.km)*segBP;
-      const h=Math.floor(segMin/60),mn=Math.floor(segMin%60),sc=Math.round((segMin%1)*60);
-      const movStr = h>0 ? `${h}:${mn<10?'0':''}${mn}:${sc<10?'0':''}${sc}` : `${mn}:${sc<10?'0':''}${sc}`;
-      svg+=`<text x="${cx}" y="${pad.t-64}" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" fill="#aaa">${movStr}</text>`;
-    }
-    // Segment D+/D- chips (bottom)
-    if(L.segElev){
-      const gn=getElevGainForSeg(wa.km,wb.km), ls=getElevLossForSeg(wa.km,wb.km);
-      const chY=pad.t+cH+70;
-      svg+=`<text x="${cx}" y="${chY}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="600">`;
-      svg+=`<tspan fill="#2E9E4F">+${gn} m</tspan><tspan fill="#ccc">  </tspan><tspan fill="#D64545">−${ls} m</tspan></text>`;
+      svg+=`<text x="${cx}" y="${TOP_MOVE_Y}" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" fill="#aaa">${fmtHMS(segMin)}</text>`;
     }
   }
 
-  // ── Waypoint vertical lines + icons + ETA ──
+  // ── Waypoint vertical bars + icons + ETA ──
   splitWps.forEach(wp=>{
     const x=xS(wp.km*1000);
     const isStart=wp.type==='start',isEnd=wp.type==='end',isRavito=isRefuel(wp.type);
     const color=isRavito?'#F08C2E':isStart?'#2E9E4F':isEnd?'#D64545':'#1E6FBF';
-    // Vertical line (not start/end)
     if(!isStart&&!isEnd){
       const dash=isRavito?'stroke-dasharray="8,5"':'';
-      svg+=`<line x1="${x}" y1="${pad.t}" x2="${x}" y2="${pad.t+cH}" stroke="${color}" stroke-width="1.3" ${dash} opacity="0.6"/>`;
+      svg+=`<line x1="${x}" y1="${pad.t}" x2="${x}" y2="${pad.t+cH}" stroke="${color}" stroke-width="1.3" ${dash} opacity="0.55"/>`;
     }
-    // ETA box (top)
+    // ETA box
     if(L.eta){
       const eta=fmtTime(startStr,cheatCumMin(wp.km));
-      svg+=`<rect x="${x-32}" y="${pad.t-128}" width="64" height="26" rx="5" fill="#fff" stroke="#ccc" stroke-width="1"/>`;
-      svg+=`<text x="${x}" y="${pad.t-110}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="600" fill="#333">${eta}</text>`;
+      svg+=`<rect x="${x-34}" y="${TOP_ETA_Y-9}" width="68" height="28" rx="5" fill="#fff" stroke="#ccc" stroke-width="1"/>`;
+      svg+=`<text x="${x}" y="${TOP_ETA_Y+10}" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#333">${eta}</text>`;
     }
-    // Icon
-    const iy=pad.t-148;
+    // Icon (between ETA box and dist label)
+    const iy=pad.t-105;
     if(isRavito){
-      svg+=`<path d="M${x},${iy-8} C${x},${iy-8} ${x-7},${iy+2} ${x-7},${iy+6} C${x-7},${iy+10} ${x-3.5},${iy+13} ${x},${iy+13} C${x+3.5},${iy+13} ${x+7},${iy+10} ${x+7},${iy+6} C${x+7},${iy+2} ${x},${iy-8}Z" fill="${color}"/>`;
+      svg+=`<path d="M${x},${iy-9} C${x},${iy-9} ${x-7},${iy+1} ${x-7},${iy+5} C${x-7},${iy+9} ${x-3.5},${iy+12} ${x},${iy+12} C${x+3.5},${iy+12} ${x+7},${iy+9} ${x+7},${iy+5} C${x+7},${iy+1} ${x},${iy-9}Z" fill="${color}"/>`;
     } else if(isStart){
-      svg+=`<circle cx="${x}" cy="${iy+3}" r="9" fill="${color}"/><circle cx="${x}" cy="${iy+3}" r="3" fill="#fff"/>`;
+      svg+=`<circle cx="${x}" cy="${iy+2}" r="10" fill="${color}"/><circle cx="${x}" cy="${iy+2}" r="3.5" fill="#fff"/>`;
     } else if(isEnd){
-      svg+=`<rect x="${x-7}" y="${iy-5}" width="14" height="10" fill="${color}"/><rect x="${x-7}" y="${iy-5}" width="7" height="5" fill="rgba(255,255,255,0.5)"/><rect x="${x}" y="${iy}" width="7" height="5" fill="rgba(255,255,255,0.5)"/>`;
+      svg+=`<rect x="${x-8}" y="${iy-6}" width="16" height="12" fill="${color}"/><rect x="${x-8}" y="${iy-6}" width="8" height="6" fill="#fff" fill-opacity="0.5"/><rect x="${x}" y="${iy}" width="8" height="6" fill="#fff" fill-opacity="0.5"/>`;
     } else {
-      svg+=`<path d="M${x},${iy-9} C${x-5},${iy-9} ${x-8},${iy-6} ${x-8},${iy-2} C${x-8},${iy+3} ${x},${iy+11} ${x},${iy+11} C${x},${iy+11} ${x+8},${iy+3} ${x+8},${iy-2} C${x+8},${iy-6} ${x+5},${iy-9} ${x},${iy-9}Z" fill="${color}"/><circle cx="${x}" cy="${iy-2}" r="3" fill="#fff"/>`;
+      svg+=`<path d="M${x},${iy-10} C${x-5.5},${iy-10} ${x-9},${iy-7} ${x-9},${iy-3} C${x-9},${iy+3} ${x},${iy+12} ${x},${iy+12} C${x},${iy+12} ${x+9},${iy+3} ${x+9},${iy-3} C${x+9},${iy-7} ${x+5.5},${iy-10} ${x},${iy-10}Z" fill="${color}"/><circle cx="${x}" cy="${iy-3}" r="3.5" fill="#fff"/>`;
     }
   });
 
-  // ── Bottom cumulative annotations ──
-  const cumRows=[];
-  if(L.cumDist) cumRows.push('cumDist');
-  if(L.cumElev) cumRows.push('cumElev');
-  if(L.cumTime) cumRows.push('cumTime');
+  // ── BOTTOM: SEG ELEV chips ──
+  const SEG_ELEV_Y = pad.t + cH + 50;
+  if(L.segElev) svg += `<text x="${pad.l-24}" y="${SEG_ELEV_Y+5}" text-anchor="end" font-family="Arial,sans-serif" font-size="17" font-weight="600" fill="#999">D+/D- SEG.</text>`;
+  if(L.segElev){
+    for(let s=1;s<allWps.length;s++){
+      const wa=allWps[s-1],wb=allWps[s];
+      const cx=(xS(wa.km*1000)+xS(wb.km*1000))/2;
+      const gn=getElevGainForSeg(wa.km,wb.km), ls=getElevLossForSeg(wa.km,wb.km);
+      const gnTxt=`+${gn}m`, lsTxt=`\u2212${ls}m`;
+      const gnW=gnTxt.length*11+24, lsW=lsTxt.length*11+24;
+      const gap=6;
+      const totalW=gnW+lsW+gap;
+      const gx=cx-totalW/2;
+      svg+=`<rect x="${gx}" y="${SEG_ELEV_Y-15}" width="${gnW}" height="26" rx="13" fill="#fff" stroke="#bce5c5" stroke-width="1.2"/>`;
+      svg+=`<text x="${gx+gnW/2}" y="${SEG_ELEV_Y+3}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="600" fill="#2E9E4F">${gnTxt}</text>`;
+      svg+=`<rect x="${gx+gnW+gap}" y="${SEG_ELEV_Y-15}" width="${lsW}" height="26" rx="13" fill="#fff" stroke="#f0c0c0" stroke-width="1.2"/>`;
+      svg+=`<text x="${gx+gnW+gap+lsW/2}" y="${SEG_ELEV_Y+3}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="600" fill="#D64545">${lsTxt}</text>`;
+    }
+  }
 
-  // row labels left
-  const cumStartY = pad.t+cH+110;
+  // ── BOTTOM: cumulative rows ──
+  const cumStartY = pad.t + cH + 105;
   let cri=0;
-  if(L.cumDist){ svg+=`<text x="${pad.l-16}" y="${cumStartY+cri*32}" text-anchor="end" font-family="Arial,sans-serif" font-size="16" font-weight="600" fill="#999">DIST. CUM.</text>`; cri++; }
-  if(L.cumElev){ svg+=`<text x="${pad.l-16}" y="${cumStartY+cri*32}" text-anchor="end" font-family="Arial,sans-serif" font-size="16" font-weight="600" fill="#999">D+ CUM.</text>`; cri++; }
-  if(L.cumTime){ svg+=`<text x="${pad.l-16}" y="${cumStartY+cri*32}" text-anchor="end" font-family="Arial,sans-serif" font-size="16" font-weight="600" fill="#999">TEMPS CUM.</text>`; cri++; }
+  if(L.cumDist){ svg+=`<text x="${pad.l-24}" y="${cumStartY+cri*34}" text-anchor="end" font-family="Arial,sans-serif" font-size="17" font-weight="600" fill="#999">DIST. CUM.</text>`; cri++; }
+  if(L.cumElev){ svg+=`<text x="${pad.l-24}" y="${cumStartY+cri*34}" text-anchor="end" font-family="Arial,sans-serif" font-size="17" font-weight="600" fill="#999">D+ CUM.</text>`; cri++; }
+  if(L.cumTime){ svg+=`<text x="${pad.l-24}" y="${cumStartY+cri*34}" text-anchor="end" font-family="Arial,sans-serif" font-size="17" font-weight="600" fill="#999">TEMPS CUM.</text>`; cri++; }
 
   splitWps.forEach(wp=>{
     const x=xS(wp.km*1000);
     let r=0;
-    if(L.cumDist){ svg+=`<text x="${x}" y="${cumStartY+r*32}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" fill="#666">${wp.km.toFixed(1)} km</text>`; r++; }
-    if(L.cumElev){ svg+=`<text x="${x}" y="${cumStartY+r*32}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" fill="#2E9E4F">${Math.round(getCumGainAtKm(wp.km))} m</text>`; r++; }
-    if(L.cumTime){
-      const cm=cheatCumMin(wp.km);
-      const h=Math.floor(cm/60),mn=Math.floor(cm%60),sec=Math.round((cm%1)*60);
-      svg+=`<text x="${x}" y="${cumStartY+r*32}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" fill="#666">${h}:${mn<10?'0':''}${mn}:${sec<10?'0':''}${sec}</text>`; r++;
-    }
+    if(L.cumDist){ svg+=`<text x="${x}" y="${cumStartY+r*34}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" fill="#666">${wp.km.toFixed(1)} km</text>`; r++; }
+    if(L.cumElev){ svg+=`<text x="${x}" y="${cumStartY+r*34}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" fill="#2E9E4F">${Math.round(getCumGainAtKm(wp.km))} m</text>`; r++; }
+    if(L.cumTime){ svg+=`<text x="${x}" y="${cumStartY+r*34}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" fill="#666">${fmtHMS(cheatCumMin(wp.km))}</text>`; r++; }
   });
 
   // ── Legend ──
-  const legY=H-30;
+  const legY=H-28;
   let lx=40;
   svg+=`<line x1="${lx}" y1="${legY}" x2="${lx+30}" y2="${legY}" stroke="#F08C2E" stroke-width="3.5"/>`;
-  svg+=`<text x="${lx+38}" y="${legY+5}" font-family="Arial,sans-serif" font-size="16" fill="#888">Élévation</text>`;
-  lx+=160;
+  svg+=`<text x="${lx+38}" y="${legY+5}" font-family="Arial,sans-serif" font-size="17" fill="#888">\u00c9l\u00e9vation</text>`;
+  lx+=180;
   svg+=`<line x1="${lx}" y1="${legY}" x2="${lx+30}" y2="${legY}" stroke="#1E6FBF" stroke-width="2"/>`;
-  svg+=`<text x="${lx+38}" y="${legY+5}" font-family="Arial,sans-serif" font-size="16" fill="#888">Allure estimée</text>`;
-  lx+=200;
+  svg+=`<text x="${lx+38}" y="${legY+5}" font-family="Arial,sans-serif" font-size="17" fill="#888">Allure estim\u00e9e</text>`;
+  lx+=220;
   svg+=`<line x1="${lx}" y1="${legY}" x2="${lx+30}" y2="${legY}" stroke="#5B9BD5" stroke-width="2" stroke-dasharray="6,4"/>`;
-  svg+=`<text x="${lx+38}" y="${legY+5}" font-family="Arial,sans-serif" font-size="16" fill="#888">Allure moy. segment</text>`;
+  svg+=`<text x="${lx+38}" y="${legY+5}" font-family="Arial,sans-serif" font-size="17" fill="#888">Allure moy. segment</text>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W*scale}" height="${H*scale}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="#ffffff"/>${svg}</svg>`;
 }

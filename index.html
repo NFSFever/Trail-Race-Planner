@@ -1813,6 +1813,7 @@ function processTrack(points,name,isTraining=false){
   // Pre-compute global mean pace multiplier for segment normalisation
   // (used by getSegBasePace to weight terrain-based pace per segment)
   invalidateSegCache();
+  _totalEffortKm = null;
   const _allM = sm.map((_,i)=>{
     const SMOOTH=25; let i0=i,i1=i,dB=0,dF=0;
     while(i0>0&&dB<SMOOTH){dB+=haversine(sm[i0-1].lat,sm[i0-1].lon,sm[i0].lat,sm[i0].lon);i0--;}
@@ -1825,6 +1826,17 @@ function processTrack(points,name,isTraining=false){
     return paceMultiplierAbaque(g);
   });
   gpx._globalMeanMult = _allM.reduce((a,b)=>a+b,0)/_allM.length;
+
+  // Precompute cumulative D+ array (accumulation 1.5m) for fast fatigue lookup
+  const _cg = new Float32Array(points.length);
+  let _g=0, _acc=0;
+  for(let i=1;i<points.length;i++){
+    const de=points[i].ele-points[i-1].ele; _acc+=de;
+    if(_acc>1.5){ _g+=_acc; _acc=0; }
+    else if(_acc<-1.5){ _acc=0; }
+    _cg[i]=_g;
+  }
+  gpx._cumGainArr = _cg;
   const km=totalDist/1000;
   waypoints=[
     {name:'Départ',km:0,type:'start',notes:''},
@@ -1872,7 +1884,10 @@ function computeBasePaceFromGpx(){
   const FLAT    = gpx._flatPace || 8.77;   // min/km on flat (calibrable)
   const VAM     = gpx._vam     || 80;      // m/min climbing speed
   const totalMin = dk * FLAT + dPlus / VAM;
-  BASE_PACE_SOLIDE = totalMin / dk;
+  // The flat+VAM estimate already reflects real (fatigued) effort, so divide
+  // by average fatigue to get the un-fatigued BASE that the model multiplies back up.
+  const avgFatigue = 1 + FATIGUE_K/2;
+  BASE_PACE_SOLIDE = (totalMin / dk) / avgFatigue;
 }
 
 function getEffortMultiplier() {
@@ -1937,10 +1952,11 @@ function getBasePace(){ return BASE_PACE_SOLIDE * getEffortMultiplier(); }
 // Applies per-segment overrides on top of global BASE_PACE_SOLIDE
 // Pace multiplier from abaque (shared between drawElevation and getSegBasePace)
 function paceMultiplierAbaque(g){
-  if(g<=-16)return 1.8; if(g<=-12)return 1.5; if(g<=-8)return 1.25;
-  if(g<=-4)return 0.90; if(g<=0)return 0.95;  if(g<=4)return 1.10;
-  if(g<=8)return 1.45;  if(g<=12)return 1.90; if(g<=16)return 2.50;
-  return 3.20;
+  // Empirically calibrated on 3 real runners (X-Traversée 11h30-14h00)
+  if(g<=-16)return 1.73; if(g<=-12)return 1.39; if(g<=-8)return 1.17;
+  if(g<=-4)return 0.87;  if(g<=0)return 0.93;   if(g<=4)return 1.07;
+  if(g<=8)return 1.42;   if(g<=12)return 1.85;  if(g<=16)return 2.42;
+  return 3.51;
 }
 
 // Compute mean grade multiplier for a km range from GPX points
@@ -1977,6 +1993,37 @@ function getSegMeanMultCached(fromKm, toKm){
 }
 function invalidateSegCache(){ _segMeanMultCache = {}; }
 
+// Fatigue coefficient — calibrated on 3 real runners (X-Traversée).
+// Pace degrades quasi-linearly with cumulative effort, reaching +30% at finish.
+// effort = cumulative (km + D+/100), the Naismith-equivalent distance.
+let FATIGUE_K = 0.30; // +30% at finish by default; 0 disables fatigue
+
+function getRaceEffortKm(km){
+  // Naismith-equivalent: distance + climb/100
+  if(!gpx) return km;
+  return km + getCumGainAtKm(km)/100;
+}
+let _totalEffortKm = null;
+function getTotalEffortKm(){
+  if(_totalEffortKm === null && gpx){
+    const endKm = waypoints.length ? waypoints.reduce((m,w)=>Math.max(m,w.km),0) : gpx.totalDist/1000;
+    _totalEffortKm = getRaceEffortKm(endKm);
+  }
+  return _totalEffortKm || 1;
+}
+function fatigueAtKm(km){
+  if(FATIGUE_K <= 0) return 1;
+  const frac = getRaceEffortKm(km) / getTotalEffortKm();
+  return 1 + FATIGUE_K * Math.min(1, frac);
+}
+// Average fatigue over a segment (integrated at midpoint effort)
+function fatigueForSeg(fromKm, toKm){
+  if(FATIGUE_K <= 0) return 1;
+  const e0 = getRaceEffortKm(fromKm), e1 = getRaceEffortKm(toKm);
+  const midFrac = ((e0+e1)/2) / getTotalEffortKm();
+  return 1 + FATIGUE_K * Math.min(1, midFrac);
+}
+
 function getSegBasePace(segIdx){
   if(!gpx) return BASE_PACE_SOLIDE;
   const ov = segOverrides[segIdx] || {};
@@ -1997,13 +2044,14 @@ function getSegBasePace(segIdx){
   const toKm   = sorted[segIdx+1].km;
 
   // Mean multiplier from abaque applied to actual terrain profile
-  // This gives the "natural" pace for this segment's terrain
   const globalMeanMult = gpx._globalMeanMult || 1;
   const segMeanMult    = getSegMeanMultCached(fromKm, toKm);
 
-  // BASE_PACE_SOLIDE is calibrated so that avg(paceMultiplier) * BASE_PACE = correct total time
-  // For this segment: pace = BASE_PACE_SOLIDE × (segMeanMult / globalMeanMult) × user_coeffs
-  return BASE_PACE_SOLIDE * (segMeanMult / globalMeanMult) * effortMult * techniCoeff * c1 * c2 * c4;
+  // Fatigue factor for this segment's position in the race
+  const fatigue = fatigueForSeg(fromKm, toKm);
+
+  // pace = BASE × terrain-ratio × fatigue × user_coeffs
+  return BASE_PACE_SOLIDE * (segMeanMult / globalMeanMult) * fatigue * effortMult * techniCoeff * c1 * c2 * c4;
 }
 
 // Cumulative time (minutes from start) to reach a given km
@@ -2054,9 +2102,16 @@ function applyTargetTime(){
   const totalMin = h * 60 + m;
   if(totalMin < 1) return; // ignore invalid
   const dk = gpx.totalDist / 1000;
-  // Derive new Solid pace from target (subtract fixed stopMin)
   const movingMin = Math.max(1, totalMin - getTotalStopMin());
-  BASE_PACE_SOLIDE = movingMin / dk;
+
+  // Calibrate exactly: measure what the model produces at BASE=1 (moving only,
+  // including real per-segment fatigue), then scale BASE so total = target.
+  // This avoids any drift between the avgFatigue approximation and the real sum.
+  const prevBase = BASE_PACE_SOLIDE;
+  BASE_PACE_SOLIDE = 1;
+  const unitMoving = Math.max(0.0001, getTotalRaceMin() - getTotalStopMin());
+  BASE_PACE_SOLIDE = movingMin / unitMoving;
+
   computeStats();
   drawElevation();
 }
@@ -2070,15 +2125,21 @@ document.getElementById('targetH').addEventListener('input', function(){
   }
 });
 // Apply on blur or Enter for either field
+let _applyingTarget = false;
 ['targetH','targetM'].forEach(id => {
   const el = document.getElementById(id);
-  el.addEventListener('blur', applyTargetTime);
+  el.addEventListener('blur', ()=>{
+    if(_applyingTarget) return;
+    _applyingTarget = true;
+    applyTargetTime();
+    _applyingTarget = false;
+  });
   el.addEventListener('keydown', e => {
     if(e.key === 'Enter'){ el.blur(); }
-    // Minutes: clamp 0-59 as user types
-    if(id === 'targetM' && e.key !== 'Backspace' && e.key !== 'Tab'){
+    // Minutes: clamp to 59 as user types (no apply mid-typing)
+    if(id === 'targetM' && e.key !== 'Backspace' && e.key !== 'Tab' && e.key.length === 1){
       const next = parseInt(el.value + e.key);
-      if(!isNaN(next) && next > 59){ e.preventDefault(); el.value = 59; applyTargetTime(); }
+      if(!isNaN(next) && next > 59){ e.preventDefault(); el.value = 59; }
     }
   });
 });
@@ -2184,7 +2245,7 @@ function renderWaypoints(){
 }
 function estimateArrivalTime(km){if(!gpx)return'--';return fmtTime(startTimeVal,getCumMinAtKm(km));}
 function getElevAtKm(km){if(!gpx)return 0;const d=km*1000,idx=gpx.cumDist.findIndex(c=>c>=d);return idx<0?gpx.points[gpx.points.length-1].ele:gpx.points[Math.min(idx,gpx.points.length-1)].ele;}
-function getCumGainAtKm(km){if(!gpx)return 0;const d=km*1000;let g=0,acc=0;for(let i=1;i<gpx.points.length;i++){if(gpx.cumDist[i]>d)break;const de=gpx.points[i].ele-gpx.points[i-1].ele;acc+=de;if(acc>1.5){g+=acc;acc=0;}else if(acc<-1.5){acc=0;}}return g;}
+function getCumGainAtKm(km){if(!gpx)return 0;const d=km*1000;if(gpx._cumGainArr){const arr=gpx._cumGainArr,cd=gpx.cumDist;let lo=0,hi=cd.length-1;while(lo<hi){const mid=(lo+hi)>>1;if(cd[mid]<d)lo=mid+1;else hi=mid;}return arr[lo];}let g=0,acc=0;for(let i=1;i<gpx.points.length;i++){if(gpx.cumDist[i]>d)break;const de=gpx.points[i].ele-gpx.points[i-1].ele;acc+=de;if(acc>1.5){g+=acc;acc=0;}else if(acc<-1.5){acc=0;}}return g;}
 function updateWpStop(i, v){
   // Save pending name from DOM
   const nameInp = document.querySelectorAll('.wp-name-input')[i];

@@ -962,12 +962,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
   background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:10px;
   overflow:hidden;display:flex;flex-direction:column;
 }
-.equip-card-photo{height:90px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.equip-card-photo{height:90px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
 .equip-card-photo img{width:100%;height:100%;object-fit:cover;}
 .equip-card-photo .ph{font-size:28px;opacity:0.3;}
 .equip-card-body{padding:9px 11px;flex:1;}
 .equip-card-name{font-size:12.5px;font-weight:500;color:var(--text);line-height:1.3;}
-.equip-card-foot{display:flex;gap:5px;padding:7px 11px;border-top:1px solid var(--border2);}
+.equip-card-foot{display:flex;gap:5px;justify-content:flex-end;padding:6px 11px;border-top:1px solid var(--border2);}
 .equip-card-btn{flex:1;font-size:10.5px;padding:4px 0;border-radius:5px;background:rgba(255,255,255,0.05);color:var(--muted);border:none;cursor:pointer;font-family:inherit;}
 .equip-card-btn:hover{background:rgba(255,255,255,0.1);color:var(--text);}
 .equip-card-btn.del:hover{background:rgba(248,81,73,0.15);color:var(--red);}
@@ -1014,7 +1014,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 .nutri-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:8px;}
 .nutri-card-name{font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3;word-break:break-word;}
 .nutri-card-brand{font-size:11px;color:var(--muted2);margin-top:1px;}
-.nutri-card-photo{cursor:pointer;}
+.nutri-card-photo{cursor:pointer;position:relative;}
 .nutri-card-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
 .nutri-card-badges:empty{display:none;}
 .nutri-gamme-sucre{background:rgba(244,114,182,0.15);color:#F472B6;}
@@ -1039,7 +1039,17 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 .nutri-card-notes{font-size:11px;color:var(--muted);font-style:italic;margin-top:8px;padding-top:8px;border-top:1px solid var(--border2);line-height:1.4;}
 .nutri-val{display:flex;justify-content:space-between;color:var(--muted);}
 .nutri-val b{color:var(--text);font-weight:500;}
-.nutri-card-foot{display:flex;gap:6px;padding:8px 13px;border-top:1px solid var(--border2);}
+.card-actions{
+  position:absolute;top:6px;right:6px;display:flex;gap:5px;z-index:2;
+}
+.card-icon-btn{
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  border-radius:6px;background:rgba(13,17,23,0.7);backdrop-filter:blur(6px);
+  color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.12);
+  cursor:pointer;font-family:inherit;transition:all 0.13s;
+}
+.card-icon-btn:hover{background:rgba(13,17,23,0.92);color:#fff;border-color:rgba(255,255,255,0.25);}
+.card-icon-btn.del:hover{background:rgba(248,81,73,0.85);color:#fff;border-color:transparent;}
 .nutri-card-btn{flex:1;font-size:11px;padding:5px 0;border-radius:6px;background:rgba(255,255,255,0.05);color:var(--muted);border:none;cursor:pointer;font-family:inherit;}
 .nutri-card-btn:hover{background:rgba(255,255,255,0.1);color:var(--text);}
 .nutri-card-btn.del:hover{background:rgba(248,81,73,0.15);color:var(--red);}
@@ -2914,18 +2924,28 @@ function processTrack(points,name,isTraining=false){
   // Reset race mode for fresh load (popup will set it)
   RACE_MODE = 'analysis';
   segTimes = {};
-  const _allM = sm.map((_,i)=>{
-    const SMOOTH=25; let i0=i,i1=i,dB=0,dF=0;
-    while(i0>0&&dB<SMOOTH){dB+=haversine(sm[i0-1].lat,sm[i0-1].lon,sm[i0].lat,sm[i0].lon);i0--;}
-    while(i1<sm.length-1&&dF<SMOOTH){dF+=haversine(sm[i1].lat,sm[i1].lon,sm[i1+1].lat,sm[i1+1].lon);i1++;}
-    const dLat=(sm[i1].lat-sm[i0].lat)*111320;
-    const dLon=(sm[i1].lon-sm[i0].lon)*111320*Math.cos(sm[i].lat*Math.PI/180);
-    const horiz=Math.sqrt(dLat*dLat+dLon*dLon);
-    const dEle=sm[i1].ele-sm[i0].ele;
-    const g=horiz>1?Math.max(-25,Math.min(25,(dEle/horiz)*100)):0;
-    return paceMultiplierAbaque(g);
-  });
-  gpx._globalMeanMult = _allM.reduce((a,b)=>a+b,0)/_allM.length;
+  // Per-point pace multiplier via O(n) sliding window over cumulative distance.
+  // (Replaces an O(n²) loop; reused later by getSegMeanMult via gpx._ptPaceMult.)
+  const _nPts = sm.length;
+  const _pm = new Float32Array(_nPts);
+  {
+    const SMOOTH = 25;
+    let i0 = 0, i1 = 0, sumM = 0;
+    for(let i=0; i<_nPts; i++){
+      while(i0 < i && cumDist[i]-cumDist[i0] > SMOOTH) i0++;
+      if(i1 < i) i1 = i;
+      while(i1 < _nPts-1 && cumDist[i1+1]-cumDist[i] <= SMOOTH) i1++;
+      const dLat=(sm[i1].lat-sm[i0].lat)*111320;
+      const dLon=(sm[i1].lon-sm[i0].lon)*111320*Math.cos(sm[i].lat*Math.PI/180);
+      const horiz=Math.sqrt(dLat*dLat+dLon*dLon);
+      const dEle=sm[i1].ele-sm[i0].ele;
+      const g=horiz>1?Math.max(-25,Math.min(25,(dEle/horiz)*100)):0;
+      const mult = paceMultiplierAbaque(g);
+      _pm[i] = mult; sumM += mult;
+    }
+    gpx._ptPaceMult = _pm;
+    gpx._globalMeanMult = _nPts > 0 ? sumM/_nPts : 1;
+  }
 
   // Precompute cumulative D+ array (accumulation 1.5m) for fast fatigue lookup
   const _cg = new Float32Array(points.length);
@@ -3008,6 +3028,7 @@ function fmtTime(base,add){const[bh,bm]=base.split(':').map(Number),t=bh*60+bm+a
 
 function computeStats(){
   if(!gpx)return;
+  invalidateVolatileCaches();
   // Show profile toggle if a calibrated profile exists
   updateProfileToggle();
   const dk = gpx.totalDist/1000;
@@ -3094,21 +3115,8 @@ function setUseProfile(on){
   // Recompute everything
   if(gpx){
     invalidateSegCache();
-    // recompute global mean mult with new abaque
-    const sm = gpx.points;
-    let sumM=0;
-    for(let i=0;i<sm.length;i++){
-      const S=25; let i0=i,i1=i,dB=0,dF=0;
-      while(i0>0&&dB<S){dB+=haversine(sm[i0-1].lat,sm[i0-1].lon,sm[i0].lat,sm[i0].lon);i0--;}
-      while(i1<sm.length-1&&dF<S){dF+=haversine(sm[i1].lat,sm[i1].lon,sm[i1+1].lat,sm[i1+1].lon);i1++;}
-      const dLat=(sm[i1].lat-sm[i0].lat)*111320;
-      const dLon=(sm[i1].lon-sm[i0].lon)*111320*Math.cos(sm[i].lat*Math.PI/180);
-      const horiz=Math.sqrt(dLat*dLat+dLon*dLon);
-      const dEle=sm[i1].ele-sm[i0].ele;
-      const g=horiz>1?Math.max(-25,Math.min(25,(dEle/horiz)*100)):0;
-      sumM+=paceMultiplierAbaque(g);
-    }
-    gpx._globalMeanMult = sumM/sm.length;
+    // Rebuild per-point pace multipliers (O(n)) with the (possibly new) abaque
+    rebuildPtPaceMult();
     computeStats();
     drawElevation();
     buildTable();
@@ -3119,13 +3127,27 @@ function setUseProfile(on){
 function getSegMeanMult(fromKm, toKm){
   if(!gpx) return 1;
   const fromM = fromKm * 1000, toM = toKm * 1000;
+  const dist = gpx.cumDist;
+  // Fast path: use precomputed per-point pace multipliers (built once on GPX load)
+  if(gpx._ptPaceMult){
+    const pm = gpx._ptPaceMult;
+    let sum = 0, count = 0;
+    // Binary search for start index
+    let lo=0, hi=dist.length-1;
+    while(lo<hi){ const mid=(lo+hi)>>1; if(dist[mid]<fromM) lo=mid+1; else hi=mid; }
+    for(let i=lo; i<pm.length; i++){
+      if(dist[i] > toM) break;
+      sum += pm[i]; count++;
+    }
+    return count > 0 ? sum/count : 1;
+  }
+  // Fallback (no precompute): original O(n²) path
   const SMOOTH = 25;
   let sum = 0, count = 0;
-  const pts = gpx.points, dist = gpx.cumDist;
+  const pts = gpx.points;
   for(let i=0; i<pts.length; i++){
     if(dist[i] < fromM) continue;
     if(dist[i] > toM)   break;
-    // Smoothed grade at point i
     let i0=i, i1=i, dB=0, dF=0;
     while(i0>0 && dB<SMOOTH){ dB+=haversine(pts[i0-1].lat,pts[i0-1].lon,pts[i0].lat,pts[i0].lon); i0--; }
     while(i1<pts.length-1 && dF<SMOOTH){ dF+=haversine(pts[i1].lat,pts[i1].lon,pts[i1+1].lat,pts[i1+1].lon); i1++; }
@@ -3140,6 +3162,32 @@ function getSegMeanMult(fromKm, toKm){
   return count > 0 ? sum/count : 1;
 }
 
+// Rebuild per-point pace multipliers + global mean (O(n) sliding window).
+// Smoothed grade depends only on the track; the abaque can change (profile), so
+// this is called on GPX load and whenever the active abaque changes.
+function rebuildPtPaceMult(){
+  if(!gpx || !gpx.points || gpx.points.length === 0){ return; }
+  const pts = gpx.points, dist = gpx.cumDist;
+  const n = pts.length;
+  const SMOOTH = 25;
+  const pm = new Float32Array(n);
+  let i0 = 0, i1 = 0, sumM = 0;
+  for(let i=0; i<n; i++){
+    while(i0 < i && dist[i]-dist[i0] > SMOOTH) i0++;
+    if(i1 < i) i1 = i;
+    while(i1 < n-1 && dist[i1+1]-dist[i] <= SMOOTH) i1++;
+    const dLat=(pts[i1].lat-pts[i0].lat)*111320;
+    const dLon=(pts[i1].lon-pts[i0].lon)*111320*Math.cos(pts[i].lat*Math.PI/180);
+    const horiz=Math.sqrt(dLat*dLat+dLon*dLon);
+    const dEle=pts[i1].ele-pts[i0].ele;
+    const grade=horiz>1?Math.max(-25,Math.min(25,(dEle/horiz)*100)):0;
+    const mult = paceMultiplierAbaque(grade);
+    pm[i] = mult; sumM += mult;
+  }
+  gpx._ptPaceMult = pm;
+  gpx._globalMeanMult = n > 0 ? sumM/n : 1;
+}
+
 // Cache of segment mean multipliers (invalidated on GPX load)
 let _segMeanMultCache = {};
 function getSegMeanMultCached(fromKm, toKm){
@@ -3147,7 +3195,22 @@ function getSegMeanMultCached(fromKm, toKm){
   if(_segMeanMultCache[key] === undefined) _segMeanMultCache[key] = getSegMeanMult(fromKm, toKm);
   return _segMeanMultCache[key];
 }
-function invalidateSegCache(){ _segMeanMultCache = {}; }
+
+// Cached sorted waypoints — avoids re-sorting on every getSegBasePace/getCumMinAtKm call.
+// Invalidated whenever waypoints are mutated (via invalidateSegCache).
+let _sortedWpsCache = null;
+function getSortedWaypoints(){
+  if(_sortedWpsCache === null){
+    _sortedWpsCache = [...waypoints].sort((a,b)=>a.km-b.km);
+  }
+  return _sortedWpsCache;
+}
+
+function invalidateSegCache(){ _segMeanMultCache = {}; _sortedWpsCache = null; _cumMinCache = null; }
+// Cheap invalidation of only the volatile per-render caches (sorted wps + cumulative time).
+// Called at the start of each top-level render so stale waypoint/coeff edits never leak,
+// while still letting the many getCumMinAtKm/getSegBasePace calls within one render reuse them.
+function invalidateVolatileCaches(){ _sortedWpsCache = null; _cumMinCache = null; }
 
 // Fatigue coefficient — calibrated on 3 real runners (X-Traversée).
 // Pace degrades quasi-linearly with cumulative effort, reaching +30% at finish.
@@ -3185,7 +3248,7 @@ function getSegBasePace(segIdx){
 
   // QUICK MODE: pace = manual segment time / segment distance
   if(RACE_MODE === 'quick'){
-    const sortedQ = [...waypoints].sort((a,b)=>a.km-b.km);
+    const sortedQ = getSortedWaypoints();
     if(segIdx < sortedQ.length-1){
       const segKm = sortedQ[segIdx+1].km - sortedQ[segIdx].km;
       const t = segTimes[segIdx];
@@ -3206,7 +3269,7 @@ function getSegBasePace(segIdx){
   const techniCoeff = TECHNI_COEFF[techni];
 
   // Get segment km bounds from sorted waypoints
-  const sorted = [...waypoints].sort((a,b)=>a.km-b.km);
+  const sorted = getSortedWaypoints();
   if(segIdx >= sorted.length-1 || sorted.length < 2){
     return BASE_PACE_SOLIDE * effortMult * techniCoeff * c1 * c2 * c4;
   }
@@ -3226,26 +3289,37 @@ function getSegBasePace(segIdx){
 
 // Cumulative time (minutes from start) to reach a given km
 // Sums segment-by-segment using per-segment paces + stop times
+// Cache of cumulative minutes at each sorted waypoint boundary.
+// Built lazily, invalidated by invalidateSegCache (waypoint/pace changes).
+let _cumMinCache = null;
+function buildCumMinCache(){
+  const sorted = getSortedWaypoints();
+  const cum = new Float64Array(sorted.length);
+  let acc = 0;
+  for(let i=1; i<sorted.length; i++){
+    const fromKm = sorted[i-1].km, toKm = sorted[i].km;
+    const pace = getSegBasePace(i-1);
+    const stops = getSegStopTime(fromKm, toKm);
+    acc += (toKm - fromKm) * pace + stops;
+    cum[i] = acc;
+  }
+  _cumMinCache = {sorted, cum};
+}
 function getCumMinAtKm(targetKm){
   if(!gpx) return 0;
-  const sorted = [...waypoints].sort((a,b)=>a.km-b.km);
+  if(_cumMinCache === null) buildCumMinCache();
+  const {sorted, cum} = _cumMinCache;
   let cumMin = 0;
-  let prevKm = 0;
-
   for(let i=1; i<sorted.length; i++){
     const fromKm = sorted[i-1].km;
     const toKm   = sorted[i].km;
-    const pace   = getSegBasePace(i-1);      // seg index = i-1
-    const stops  = getSegStopTime(fromKm, toKm);
-
     if(targetKm <= fromKm) break;
-
     if(targetKm >= toKm){
-      // Full segment
-      cumMin += (toKm - fromKm) * pace + stops;
+      cumMin = cum[i]; // full segment (includes stops) — from cache
     } else {
-      // Partial segment — no stops (target is within segment)
-      cumMin += (targetKm - fromKm) * pace;
+      // Partial segment — no stops; cum[i-1] is time at fromKm
+      const pace = getSegBasePace(i-1);
+      cumMin = cum[i-1] + (targetKm - fromKm) * pace;
       break;
     }
   }
@@ -3716,6 +3790,7 @@ function drawElevationInto(host){
 
 function drawElevation(){
   const svg=document.getElementById('elevSvg'); if(!gpx)return;
+  invalidateVolatileCaches();
   const wrap=document.getElementById('elevChartWrap');
   void wrap.offsetHeight; // force reflow
   const W=wrap.clientWidth;
@@ -4516,7 +4591,17 @@ function renderNutritionGrid(){
           ? `<span class="nutri-card-type ${NUTRI_GAMME_CLASS[p.taste]||''}">${NUTRI_GAMME_LABELS[p.taste]}</span>` : '';
         const expanded = _nutriExpanded[idx];
         return `<div class="nutri-card ${expanded?'expanded':''}">
-          <div class="nutri-card-photo" onclick="toggleNutriCard(${idx})">${photo}</div>
+          <div class="nutri-card-photo" onclick="toggleNutriCard(${idx})">
+            ${photo}
+            <div class="card-actions">
+              <button class="card-icon-btn" onclick="event.stopPropagation();openProductModal(${idx})" title="Modifier" aria-label="Modifier">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9.5 2.5l2 2L5 11l-2.5.5L3 9l6.5-6.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="card-icon-btn del" onclick="event.stopPropagation();deleteProduct(${idx})" title="Supprimer" aria-label="Supprimer">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 3.5h9M5 3.5V2.5h4v1M3.5 3.5l.6 8h5.8l.6-8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
           <div class="nutri-card-body">
             <div class="nutri-card-head">
               <div style="min-width:0;">
@@ -4539,10 +4624,6 @@ function renderNutritionGrid(){
               <span class="nutri-val">Calories<b>${p.kcal||0}</b></span>
             </div>
             ${expanded && p.notes ? `<div class="nutri-card-notes">${p.notes}</div>` : ''}
-          </div>
-          <div class="nutri-card-foot">
-            <button class="nutri-card-btn" onclick="openProductModal(${idx})">Modifier</button>
-            <button class="nutri-card-btn del" onclick="deleteProduct(${idx})">Supprimer</button>
           </div>
         </div>`;
       }).join('') +
@@ -4848,12 +4929,18 @@ function renderEquipmentBase(){
         inCat.map(({it,idx})=>{
           const photo = it.photo ? `<img src="${it.photo}" alt="${it.name}">` : `<span class="ph">${cat.icon}</span>`;
           return `<div class="equip-card">
-            <div class="equip-card-photo">${photo}</div>
-            <div class="equip-card-body"><div class="equip-card-name">${it.name}</div></div>
-            <div class="equip-card-foot">
-              <button class="equip-card-btn" onclick="openEquipModal(${idx})">Modifier</button>
-              <button class="equip-card-btn del" onclick="deleteEquip(${idx})">Suppr.</button>
+            <div class="equip-card-photo">
+              ${photo}
+              <div class="card-actions">
+                <button class="card-icon-btn" onclick="openEquipModal(${idx})" title="Modifier" aria-label="Modifier">
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9.5 2.5l2 2L5 11l-2.5.5L3 9l6.5-6.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="card-icon-btn del" onclick="deleteEquip(${idx})" title="Supprimer" aria-label="Supprimer">
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 3.5h9M5 3.5V2.5h4v1M3.5 3.5l.6 8h5.8l.6-8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
             </div>
+            <div class="equip-card-body"><div class="equip-card-name">${it.name}</div></div>
           </div>`;
         }).join('') +
         `</div>
@@ -5951,6 +6038,7 @@ function updateColPickerVisibility(view){
 
 function buildTable(){
   if(!gpx)return;
+  invalidateVolatileCaches();
   const body=document.getElementById('segTableBody');
   const dk=gpx.totalDist/1000;
   const bp=getBasePace();

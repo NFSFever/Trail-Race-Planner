@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trail Race Planner</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<!-- FIT parsing handled by built-in decoder (decodeFitBinary) — no CDN dependency -->
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -790,14 +791,266 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
   font-size:11px;font-weight:700;color:transparent;
   transition:all 0.12s;
 }
-.col-picker-opt.active .col-picker-check{
-  background:var(--orange);border-color:var(--orange);color:#fff;
+/* ══════════ PROFILE PAGE ══════════ */
+.prof-dropzone{
+  background:rgba(255,255,255,0.02);border:1.5px dashed var(--border2);
+  border-radius:14px;padding:32px 20px;text-align:center;cursor:pointer;
+  transition:all 0.15s;margin-bottom:20px;
 }
+.prof-dropzone:hover,.prof-dropzone.dragover{
+  border-color:var(--orange);background:rgba(255,107,53,0.04);
+}
+.prof-dz-icon{font-size:30px;margin-bottom:8px;opacity:0.6;}
+.prof-dz-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.prof-dz-sub{font-size:12px;color:var(--muted);}
+.prof-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.prof-stat{background:rgba(255,255,255,0.03);border-radius:10px;padding:14px 16px;}
+.prof-stat-label{font-size:12px;color:var(--muted);margin-bottom:4px;}
+.prof-stat-value{font-size:22px;font-weight:600;color:var(--text);}
+.prof-card{
+  background:rgba(255,255,255,0.02);border:1px solid var(--border2);
+  border-radius:14px;padding:16px 18px;margin-bottom:16px;
+}
+.prof-card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;}
+.prof-trace-row{
+  display:flex;align-items:center;gap:12px;padding:10px 0;
+  border-bottom:1px solid var(--border2);
+}
+.prof-trace-row:last-child{border-bottom:none;}
+.prof-trace-icon{font-size:18px;opacity:0.7;}
+.prof-trace-info{flex:1;min-width:0;}
+.prof-trace-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.prof-trace-meta{font-size:11px;color:var(--muted);}
+.prof-trace-meta.err{color:var(--red);}
+.prof-trace-badge{
+  font-size:11px;padding:3px 8px;border-radius:6px;white-space:nowrap;
+  background:rgba(63,185,80,0.15);color:var(--green);
+}
+.prof-trace-del{font-size:15px;color:var(--muted);cursor:pointer;opacity:0.6;transition:opacity 0.15s;}
+.prof-trace-del:hover{opacity:1;color:var(--red);}
+.prof-abaque-legend{display:flex;gap:16px;font-size:11px;color:var(--muted2);margin-top:8px;align-items:center;}
+.prof-abaque-zones{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:5px 10px;
+  margin-top:12px;font-size:10.5px;color:var(--muted2);
+}
+.prof-zone-sq{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:4px;}
+.prof-abaque-foot{margin-top:10px;padding-top:8px;border-top:1px solid var(--border2);}
+.prof-leg-line{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px;border-radius:1px;}
+.prof-reset-btn{
+  padding:8px 16px;font-size:13px;border-radius:8px;
+  background:none;border:1px solid var(--border2);color:var(--muted);
+  cursor:pointer;font-family:inherit;
+}
+.prof-reset-btn:hover{border-color:var(--red);color:var(--red);}
+.profile-toggle-row{
+  display:flex;flex-direction:column;gap:3px;
+  margin-top:10px;padding:9px 11px;
+  background:rgba(255,107,53,0.05);border:1px solid rgba(255,107,53,0.15);
+  border-radius:9px;
+}
+.profile-toggle-label{
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  font-size:12.5px;color:var(--text);font-weight:500;
+}
+.profile-toggle-label input{accent-color:var(--orange);width:15px;height:15px;cursor:pointer;}
+.profile-toggle-hint{font-size:11px;color:var(--muted2);padding-left:23px;}
 
-/* ══════════ CHEATSHEET MODAL ══════════ */
+/* ══════════ WAYPOINT CONFIG MODAL ══════════ */
+.wpcfg-overlay{
+  position:fixed;inset:0;z-index:1090;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.wpcfg-overlay.open{display:flex;}
+.wpcfg-modal{
+  background:#0F141B;border:1px solid rgba(255,255,255,0.1);
+  border-radius:16px;width:min(1080px,97vw);height:min(720px,92vh);
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 64px rgba(0,0,0,0.6);
+}
+.wpcfg-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 18px;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;
+}
+.wpcfg-title{font-size:15px;font-weight:600;color:var(--text);}
+.wpcfg-subtitle{font-size:11.5px;color:var(--muted);margin-top:2px;}
+.wpcfg-done{
+  background:var(--orange);color:#fff;border:none;border-radius:9px;
+  padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
+}
+.wpcfg-done:hover{filter:brightness(1.08);}
+.wpcfg-body{display:grid;grid-template-columns:300px 1fr;flex:1;min-height:0;}
+.wpcfg-left{
+  border-right:1px solid rgba(255,255,255,0.08);
+  padding:12px;overflow-y:auto;
+}
+.wpcfg-right{padding:12px;display:flex;flex-direction:column;gap:10px;min-height:0;}
+.wpcfg-chart{background:#0a0e16;border:1px solid var(--border2);border-radius:9px;height:240px;flex-shrink:0;position:relative;overflow:hidden;}
+.wpcfg-chart svg{width:100%;height:100%;}
+.wpcfg-table{background:rgba(255,255,255,0.02);border:1px solid var(--border2);border-radius:9px;flex:1;overflow-y:auto;min-height:0;}
+.wpcfg-section-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted2);margin-bottom:10px;}
+.wpcfg-wp{
+  background:rgba(255,255,255,0.03);border-radius:10px;padding:10px;margin-bottom:8px;
+}
+.wpcfg-wp.ravito{background:rgba(255,107,53,0.06);border:1px solid rgba(255,107,53,0.2);}
+.wpcfg-wp-head{display:flex;align-items:center;gap:7px;margin-bottom:9px;}
+.wpcfg-wp-icon{font-size:14px;}
+.wpcfg-wp-name{flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:13px;font-weight:500;padding:4px 7px;font-family:inherit;min-width:0;}
+.wpcfg-wp-name:focus{outline:none;border-color:var(--orange);}
+.wpcfg-wp-name[readonly]{background:none;border-color:transparent;padding-left:0;}
+.wpcfg-wp-km{font-size:11px;font-weight:500;flex-shrink:0;}
+.wpcfg-techni{display:flex;gap:4px;margin-bottom:7px;}
+.wpcfg-techni-btn{
+  flex:1;font-size:10.5px;padding:5px 0;border-radius:6px;
+  background:rgba(255,255,255,0.05);color:var(--muted2);border:none;cursor:pointer;font-family:inherit;
+}
+.wpcfg-techni-btn.active{background:var(--orange);color:#fff;}
+.wpcfg-kmrow{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.wpcfg-kmrow label{font-size:11px;color:var(--muted2);}
+.wpcfg-km-inp{
+  width:64px;height:27px;text-align:center;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:5px;
+  color:var(--text);font-size:12px;font-family:inherit;
+}
+.wpcfg-km-inp:focus{outline:none;border-color:var(--orange);}
+.wpcfg-stoprow,.wpcfg-timerow{display:flex;align-items:center;gap:6px;}
+.wpcfg-stoprow label,.wpcfg-timerow label{font-size:11px;color:var(--muted2);}
+.wpcfg-mini-inp{
+  width:42px;height:27px;text-align:center;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:5px;
+  color:var(--text);font-size:11px;font-family:inherit;
+}
+.wpcfg-mini-inp:focus{outline:none;border-color:var(--orange);}
+.wpcfg-segtime{margin-left:auto;font-size:11px;color:var(--muted);}
+.wpcfg-segtime b{color:var(--text);font-weight:600;}
+.wpcfg-add{
+  width:100%;padding:8px;font-size:12px;border-radius:8px;
+  background:none;border:1px dashed rgba(255,255,255,0.15);color:var(--muted);
+  cursor:pointer;font-family:inherit;margin-top:4px;
+}
+.wpcfg-add:hover{border-color:var(--orange);color:var(--orange);}
+.wpcfg-tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.wpcfg-tbl th{font-size:9.5px;text-transform:uppercase;letter-spacing:0.3px;color:var(--muted2);text-align:left;padding:8px 10px;border-bottom:1px solid var(--border2);position:sticky;top:0;background:#10151d;}
+.wpcfg-tbl td{padding:6px 10px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,0.04);}
+
+/* ══════════ MODE CHOICE MODAL ══════════ */
+.mode-overlay{
+  position:fixed;inset:0;z-index:1100;
+  background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;padding:24px;
+}
+.mode-overlay.open{display:flex;}
+.mode-modal{
+  background:#0F141B;border:1px solid rgba(255,255,255,0.1);
+  border-radius:18px;padding:24px;width:min(460px,95vw);
+  box-shadow:0 24px 64px rgba(0,0,0,0.6);
+}
+.mode-title{font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.mode-subtitle{font-size:13px;color:var(--muted);margin-bottom:20px;}
+.mode-option{
+  width:100%;text-align:left;padding:15px 16px;margin-bottom:11px;
+  border:1px solid rgba(255,255,255,0.12);border-radius:13px;
+  background:rgba(255,255,255,0.02);cursor:pointer;
+  display:flex;gap:13px;align-items:flex-start;font-family:inherit;
+  transition:all 0.14s;
+}
+.mode-option:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.2);}
+.mode-option-featured{border:2px solid var(--orange);}
+.mode-option-featured:hover{background:rgba(255,107,53,0.06);}
+.mode-opt-icon{font-size:22px;line-height:1;flex-shrink:0;margin-top:1px;}
+.mode-opt-text{display:flex;flex-direction:column;gap:3px;}
+.mode-opt-name{font-size:14px;font-weight:600;color:var(--text);}
+.mode-opt-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+
+/* ══════════ QUICK MODE PANEL ══════════ */
+.quick-panel{
+  background:rgba(255,255,255,0.02);border:1px solid var(--border2);
+  border-radius:12px;overflow:hidden;margin-top:10px;
+}
+.quick-panel-head{
+  display:flex;align-items:center;gap:8px;padding:11px 13px;
+  border-bottom:1px solid var(--border2);
+}
+.quick-panel-head-title{font-size:13px;font-weight:600;color:var(--text);}
+.quick-panel-total{margin-left:auto;font-size:12px;color:var(--muted);}
+.quick-panel-total b{color:var(--text);font-weight:600;}
+.quick-prefill-note{
+  font-size:11px;color:var(--orange);padding:7px 13px;
+  background:rgba(255,107,53,0.06);border-bottom:1px solid var(--border2);
+  display:flex;align-items:center;gap:6px;
+}
+.quick-seg-row{
+  display:flex;align-items:center;gap:9px;padding:10px 13px;
+  border-bottom:1px solid var(--border2);
+}
+.quick-seg-row:last-child{border-bottom:none;}
+.quick-seg-num{font-size:11px;color:var(--muted2);width:13px;flex-shrink:0;}
+.quick-seg-info{flex:1;min-width:0;}
+.quick-seg-name{font-size:12.5px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.quick-seg-meta{font-size:10.5px;color:var(--muted2);}
+.quick-seg-inputs{display:flex;align-items:center;gap:3px;flex-shrink:0;}
+.quick-t-inp{
+  width:36px;height:30px;text-align:center;font-size:12px;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border2);
+  border-radius:6px;color:var(--text);font-family:inherit;
+}
+.quick-t-inp:focus{outline:none;border-color:var(--orange);}
+.quick-t-unit{font-size:11px;color:var(--muted2);}
+.quick-ravito-row{
+  display:flex;align-items:center;gap:9px;padding:9px 13px;
+  border-bottom:1px solid var(--border2);background:rgba(255,107,53,0.05);
+}
+.quick-ravito-label{flex:1;font-size:11.5px;color:var(--orange);display:flex;align-items:center;gap:6px;}
+/* Quick mode panel */
+.quick-panel-head{display:flex;align-items:center;gap:8px;margin:4px 0 6px;}
+.quick-panel-icon{font-size:15px;}
+.quick-panel-title{font-size:13px;font-weight:600;color:var(--text);}
+.quick-panel-total{margin-left:auto;font-size:12px;color:var(--muted);}
+.quick-panel-total span{color:var(--text);font-weight:600;}
+.quick-prefill-note{font-size:11px;color:var(--muted2);font-style:italic;margin-bottom:10px;line-height:1.4;}
+.quick-seg-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border2);}
+.quick-seg-num{font-size:11px;color:var(--muted2);width:13px;text-align:center;flex-shrink:0;}
+.quick-seg-info{flex:1;min-width:0;}
+.quick-seg-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.quick-seg-meta{font-size:10.5px;color:var(--muted2);}
+.quick-seg-time{display:flex;align-items:center;gap:3px;flex-shrink:0;}
+.quick-t-inp{
+  width:34px;height:28px;text-align:center;font-size:12px;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border2);
+  border-radius:6px;color:var(--text);font-family:inherit;
+}
+.quick-t-inp:focus{outline:none;border-color:var(--orange);}
+.quick-t-unit{font-size:11px;color:var(--muted2);}
+.quick-stop-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border2);background:rgba(255,107,53,0.04);}
+.quick-stop-icon{font-size:13px;}
+.quick-stop-label{flex:1;font-size:11.5px;color:var(--orange);}
+  position:fixed;inset:0;z-index:1100;
+  background:rgba(0,0,0,0.65);backdrop-filter:blur(5px);
+  display:none;align-items:center;justify-content:center;padding:24px;
+}
+.mode-overlay.open{display:flex;}
+.mode-modal{
+  background:#0F141B;border:1px solid rgba(255,255,255,0.1);
+  border-radius:18px;padding:26px;width:min(460px,95vw);
+  box-shadow:0 24px 64px rgba(0,0,0,0.6);
+}
+.mode-title{font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.mode-sub{font-size:13px;color:var(--muted);margin-bottom:20px;}
+.mode-card{
+  display:flex;gap:13px;align-items:flex-start;width:100%;text-align:left;
+  padding:15px 16px;border-radius:13px;background:none;cursor:pointer;
+  font-family:inherit;margin-bottom:11px;transition:all 0.13s;
+  border:1px solid var(--border2);
+}
+.mode-card:hover{background:rgba(255,255,255,0.03);}
+.mode-card-quick{border:2px solid var(--orange);}
+.mode-card-quick:hover{background:rgba(255,107,53,0.06);}
+.mode-card-icon{font-size:22px;line-height:1.2;flex-shrink:0;}
+.mode-card-txt{display:flex;flex-direction:column;gap:3px;}
+.mode-card-name{font-size:14px;font-weight:600;color:var(--text);}
+.mode-card-desc{font-size:12px;color:var(--muted);line-height:1.5;}
 .cheat-overlay{
-  position:fixed;inset:0;z-index:1000;
-  background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);
+  position:fixed;inset:0;z-index:1000;  background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);
   display:none;align-items:center;justify-content:center;padding:24px;
 }
 .cheat-overlay.open{ display:flex; }
@@ -1044,6 +1297,7 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
       </button>
     </div>
     <div class="nav-bottom">
+      <button class="nav-link" onclick="openProfilePage()"><span class="nav-link-icon">📊</span><span class="nav-link-label">Mon profil</span></button>
       <button class="nav-link"><span class="nav-link-icon">⚙️</span><span class="nav-link-label">Paramètres</span></button>
     </div>
   </nav>
@@ -1115,6 +1369,100 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
 </div>
 
 <!-- ══════════════════════════════════
+     PROFILE SCREEN — Mon profil coureur
+══════════════════════════════════ -->
+<div class="screen" id="profileScreen">
+  <nav class="home-nav">
+    <div class="home-nav-top">
+      <div class="nav-avatar">AP</div>
+      <div class="nav-username">Arnaud</div>
+      <div class="nav-subtitle">Trail Runner</div>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link" onclick="goHome()">
+        <span class="nav-link-icon">🏁</span>
+        <span class="nav-link-label">Mes courses</span>
+      </button>
+    </div>
+    <div class="nav-bottom">
+      <button class="nav-link active"><span class="nav-link-icon">📊</span><span class="nav-link-label">Mon profil</span></button>
+    </div>
+  </nav>
+
+  <div class="home-main">
+    <div class="home-topbar">
+      <div class="home-tabs">
+        <button class="home-tab active">Mon profil coureur</button>
+      </div>
+    </div>
+    <div class="home-content" style="overflow-y:auto;">
+      <div style="max-width:920px;">
+        <p style="font-size:13px;color:var(--muted);margin:0 0 20px;">
+          Importe tes activités chronométrées (Strava, Garmin) pour calibrer un modèle d'allure personnalisé : ton allure de plat, ta réponse à la pente, ta résistance à la fatigue.
+        </p>
+
+        <!-- Import dropzone -->
+        <div class="prof-dropzone" id="profDropzone">
+          <input type="file" id="profFileInput" accept=".gpx,.tcx,.fit" multiple style="display:none;" onchange="handleProfileFiles(this.files)">
+          <div class="prof-dz-icon">⬆️</div>
+          <div class="prof-dz-title">Glisse tes traces ici ou clique pour choisir</div>
+          <div class="prof-dz-sub">FIT, GPX ou TCX chronométré · Garmin, Strava (le .FIT donne la meilleure altitude)</div>
+        </div>
+
+        <!-- Stats -->
+        <div class="prof-stats" id="profStats" style="display:none;">
+          <div class="prof-stat">
+            <div class="prof-stat-label">Traces analysées</div>
+            <div class="prof-stat-value" id="profStatCount">0</div>
+          </div>
+          <div class="prof-stat">
+            <div class="prof-stat-label">Allure de plat</div>
+            <div class="prof-stat-value" id="profStatFlat">—</div>
+          </div>
+          <div class="prof-stat">
+            <div class="prof-stat-label">Résist. fatigue</div>
+            <div class="prof-stat-value" id="profStatFatigue">—</div>
+          </div>
+        </div>
+
+        <!-- Traces list -->
+        <div class="prof-card" id="profTracesCard" style="display:none;">
+          <div class="prof-card-title">Traces importées</div>
+          <div id="profTracesList"></div>
+        </div>
+
+        <!-- Abaque chart -->
+        <div class="prof-card" id="profAbaqueCard" style="display:none;">
+          <div class="prof-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Mon abaque personnelle</span>
+            <span style="font-size:11px;color:var(--muted);font-weight:400;">vs générique</span>
+          </div>
+          <div id="profAbaqueChart"></div>
+          <div class="prof-abaque-zones">
+            <span><span class="prof-zone-sq" style="background:#7F77DD;"></span>≤−16%</span>
+            <span><span class="prof-zone-sq" style="background:#185FA5;"></span>−12/−8%</span>
+            <span><span class="prof-zone-sq" style="background:#85B7EB;"></span>−4/0%</span>
+            <span><span class="prof-zone-sq" style="background:#639922;"></span>0/4%</span>
+            <span><span class="prof-zone-sq" style="background:#EF9F27;"></span>4/8%</span>
+            <span><span class="prof-zone-sq" style="background:#BA7517;"></span>8/12%</span>
+            <span><span class="prof-zone-sq" style="background:#E24B4A;"></span>12/16%</span>
+            <span><span class="prof-zone-sq" style="background:#A32D2D;"></span>&gt;16%</span>
+          </div>
+          <div class="prof-abaque-foot">
+            <span style="color:var(--muted2);font-size:11px;" id="profAbaqueNote"></span>
+          </div>
+        </div>
+
+        <!-- Reset -->
+        <div id="profResetWrap" style="display:none;margin-top:16px;">
+          <button class="prof-reset-btn" onclick="resetProfile()">Réinitialiser mon profil</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
      APP SCREEN
 ══════════════════════════════════ -->
 <div class="screen" id="appScreen">
@@ -1155,7 +1503,8 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
             <div class="fp-section-label">ESTIMATED FINISH TIME</div>
             <div class="fp-finish-time" id="finishTime">--h --m</div>
 
-            <!-- 3-zone effort slider -->
+            <!-- 3-zone effort slider (analysis mode only) -->
+            <div id="analysisControls">
             <div class="effort-slider-wrap">
               <div class="effort-track-wrap">
                 <div class="effort-zone effort-zone-bon"></div>
@@ -1168,6 +1517,27 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
                 <span class="effort-lbl-solide">Solid day</span>
                 <span class="effort-lbl-dur">Rough day</span>
               </div>
+            </div>
+
+            <!-- Profile toggle -->
+            <div class="profile-toggle-row" id="profileToggleRow" style="display:none;">
+              <label class="profile-toggle-label">
+                <input type="checkbox" id="useProfileChk" onchange="setUseProfile(this.checked)">
+                <span>Utiliser mon profil coureur</span>
+              </label>
+              <span class="profile-toggle-hint" id="profileToggleHint"></span>
+            </div>
+            </div><!-- /analysisControls -->
+
+            <!-- Quick mode panel -->
+            <div id="quickPanel" style="display:none;">
+              <div class="quick-panel-head">
+                <span class="quick-panel-icon">⚡</span>
+                <span class="quick-panel-title">Temps par segment</span>
+                <span class="quick-panel-total">Total : <span id="quickTotalTime">--</span></span>
+              </div>
+              <div class="quick-prefill-note">Temps pré-calculés selon le terrain — ajuste-les librement.</div>
+              <div id="quickPanelBody"></div>
             </div>
 
             <!-- Key stats -->
@@ -1654,6 +2024,10 @@ function initAllSliderFills() {
 // ══════════════════════════════════════════
 const isElectron = typeof window.electronAPI !== 'undefined';
 let gpx=null, waypoints=[], elevView='full', currentView='map';
+// Race planning mode: 'analysis' (full model) or 'quick' (manual segment times)
+let RACE_MODE = 'analysis';
+let segTimes = {};       // quick mode: manual time per segment (minutes)
+let segTimesPrefilled = {}; // tracks which seg times are still model-prefilled (not user-edited)
 let stopMin=10, startTimeVal='07:30';
 let currentFileType='race';
 let library={races:[],training:[],routes:[]};
@@ -1771,7 +2145,344 @@ function parseGPX(text,fallbackName,isTraining=false){
     });
     const name=doc.querySelector('trk > name')?.textContent||doc.querySelector('metadata > name')?.textContent||fallbackName;
     processTrack(points,name.trim(),isTraining);
+    // processTrack already opens the mode modal for fresh imports
   }catch(e){ notify('GPX invalide: '+e.message,'err'); }
+}
+
+// ══════════════════════════════════════════
+// RACE MODE (quick vs analysis)
+// ══════════════════════════════════════════
+function openModeModal(){
+  if(!gpx) return;
+  const sub = document.getElementById('modeSubtitle');
+  if(sub) sub.textContent = `${gpx.name} · ${(gpx.totalDist/1000).toFixed(1)} km · ${Math.round(gpx.elevGain)} m D+`;
+  document.getElementById('modeOverlay').classList.add('open');
+}
+function chooseRaceMode(mode){
+  RACE_MODE = mode;
+  document.getElementById('modeOverlay').classList.remove('open');
+  if(mode === 'quick'){
+    prefillSegTimes();
+  }
+  applyRaceModeUI();
+  computeStats();
+  buildTable();
+  drawElevation();
+  // Open the waypoint configuration step
+  setTimeout(()=>openWpConfig(), 80);
+}
+
+// ══════════════════════════════════════════
+// WAYPOINT CONFIG MODAL
+// ══════════════════════════════════════════
+function openWpConfig(){
+  if(!gpx){ console.warn('openWpConfig: no gpx'); return; }
+  const ov = document.getElementById('wpcfgOverlay');
+  if(!ov){ console.error('openWpConfig: overlay element missing'); return; }
+  const sub = document.getElementById('wpcfgSubtitle');
+  if(sub) sub.textContent = RACE_MODE==='quick'
+      ? 'Ajuste les temps de segment et les positions — graphique et tableau se mettent à jour'
+      : 'Ajuste le terrain et les positions — graphique et tableau se mettent à jour';
+  ov.classList.add('open');
+  try{
+    renderWpConfig();
+  }catch(e){
+    console.error('renderWpConfig failed:', e);
+    notify('Erreur config waypoints: '+e.message,'err');
+  }
+}
+function closeWpConfig(){
+  document.getElementById('wpcfgOverlay').classList.remove('open');
+  // Page is already up to date; just make sure everything is fresh
+  computeStats(); drawElevation(); buildTable(); renderWaypoints();
+  if(leafletMap) drawLeafletWaypoints();
+}
+
+const TECHNI_NAMES = ['Roulant','Technique','Alpin','Extrême'];
+
+function renderWpConfig(){
+  const left = document.getElementById('wpcfgLeft');
+  const sorted = [...waypoints].sort((a,b)=>a.km-b.km);
+  const maxKm = gpx.totalDist/1000;
+  let html = '<div class="wpcfg-section-label">Waypoints</div>';
+
+  sorted.forEach((wp)=>{
+    const realIdx = waypoints.indexOf(wp);
+    const isRavito = isRefuel(wp.type);
+    const isEnd = wp.type==='end', isStart = wp.type==='start';
+    const color = isRavito?'#F08C2E':isStart?'#3FB950':isEnd?'#F85149':'#85B7EB';
+    const icon = isRavito?(wp.type==='refuel-full'?'🍴':'💧'):isStart?'🏁':isEnd?'🏁':'📍';
+
+    // segment index (this wp ends segment segIdx = position-1)
+    const pos = sorted.indexOf(wp);
+    const segIdx = pos-1;
+
+    html += `<div class="wpcfg-wp ${isRavito?'ravito':''}">
+      <div class="wpcfg-wp-head">
+        <span class="wpcfg-wp-icon">${icon}</span>
+        <input class="wpcfg-wp-name" value="${wp.name}" onchange="wpcfgRename(${realIdx},this.value)" ${(isStart||isEnd)?'readonly':''}>
+        <span class="wpcfg-wp-km" style="color:${color}">${wp.km.toFixed(1)} km</span>
+      </div>`;
+
+    // Position numeric field (not for start/end)
+    if(!isStart && !isEnd){
+      html += `<div class="wpcfg-kmrow">
+        <label>Position</label>
+        <input type="number" class="wpcfg-km-inp" min="0.1" max="${(maxKm-0.1).toFixed(1)}" step="0.1" value="${wp.km.toFixed(1)}" onchange="wpcfgSetKm(${realIdx},this.value)">
+        <span style="font-size:11px;color:var(--muted2)">km</span>
+      </div>`;
+    }
+
+    if(pos>0){
+      if(RACE_MODE==='analysis'){
+        // Technicité buttons
+        const tq = (segOverrides[segIdx]?.techni) ?? 0;
+        html += `<div class="wpcfg-techni">` +
+          TECHNI_NAMES.map((n,ti)=>`<button class="wpcfg-techni-btn ${ti===tq?'active':''}" onclick="wpcfgSetTechni(${segIdx},${ti})">${n}</button>`).join('') +
+          `</div>`;
+      } else {
+        // Quick mode: segment time inputs
+        const t = segTimes[segIdx] ?? 0;
+        const h = Math.floor(t/60), mn = Math.round(t%60);
+        const pre = segTimesPrefilled[segIdx];
+        html += `<div class="wpcfg-timerow">
+          <label>Temps segment${pre?' <span style="color:var(--orange)">(pré-calc.)</span>':''}</label>
+          <input type="number" class="wpcfg-mini-inp" min="0" max="99" value="${h}" onchange="wpcfgSetSegTime(${segIdx},'h',this.value)">
+          <span style="font-size:11px;color:var(--muted2)">h</span>
+          <input type="number" class="wpcfg-mini-inp" min="0" max="59" value="${String(mn).padStart(2,'0')}" onchange="wpcfgSetSegTime(${segIdx},'m',this.value)">
+          <span style="font-size:11px;color:var(--muted2)">min</span>
+        </div>`;
+      }
+    }
+
+    // Ravito stop time
+    if(isRavito){
+      html += `<div class="wpcfg-stoprow">
+        <label>Arrêt</label>
+        <input type="number" class="wpcfg-mini-inp" min="0" max="99" value="${wp.stopTime ?? 0}" onchange="wpcfgSetStop(${realIdx},this.value)">
+        <span style="font-size:11px;color:var(--muted2)">min</span>
+        ${pos>0?`<span class="wpcfg-segtime">Seg : <b>${fmtDuration((sorted[pos].km-sorted[pos-1].km)*getSegBasePace(segIdx))}</b></span>`:''}
+      </div>`;
+    } else if(pos>0){
+      html += `<div class="wpcfg-stoprow"><span class="wpcfg-segtime" style="margin-left:0;">Segment : <b>${fmtDuration((sorted[pos].km-sorted[pos-1].km)*getSegBasePace(segIdx))}</b></span></div>`;
+    }
+
+    // Delete (not start/end)
+    if(!isStart && !isEnd){
+      html += `<div style="text-align:right;margin-top:6px;"><button onclick="wpcfgDelete(${realIdx})" style="font-size:11px;background:none;border:none;color:var(--muted2);cursor:pointer;">🗑 Supprimer</button></div>`;
+    }
+
+    html += `</div>`;
+  });
+
+  html += `<button class="wpcfg-add" onclick="wpcfgAdd()">+ Ajouter un waypoint</button>`;
+  left.innerHTML = html;
+
+  // Render chart + table into the modal's containers using existing functions
+  renderWpConfigPreview();
+}
+
+// Render elevation + table inside the modal
+function renderWpConfigPreview(){
+  // Elevation: reuse drawElevation by temporarily pointing it at modal container
+  const chartHost = document.getElementById('wpcfgChart');
+  const tableHost = document.getElementById('wpcfgTable');
+  // Draw elevation SVG via the dedicated mini-renderer
+  drawElevationInto(chartHost);
+  // Build a compact table
+  const sorted = [...waypoints].sort((a,b)=>a.km-b.km);
+  let rows = '<table class="wpcfg-tbl"><thead><tr><th>Point</th><th>km</th><th>D+</th><th>Durée</th><th>ETA</th></tr></thead><tbody>';
+  sorted.forEach((wp,pos)=>{
+    const isRavito=isRefuel(wp.type);
+    const color=isRavito?'#F08C2E':wp.type==='start'?'#3FB950':wp.type==='end'?'#F85149':'#85B7EB';
+    const eta = fmtTime(startTimeVal, getCumMinAtKm(wp.km));
+    const gain = pos>0 ? getElevGainForSeg(sorted[pos-1].km, wp.km) : 0;
+    const dur = pos>0 ? fmtDuration(getCumMinAtKm(wp.km)-getCumMinAtKm(sorted[pos-1].km)) : '—';
+    rows += `<tr><td style="color:${color};font-weight:500;">${wp.name}</td><td>${wp.km.toFixed(1)}</td><td style="color:#3FB950;">+${gain}</td><td>${dur}</td><td>${eta}</td></tr>`;
+  });
+  rows += '</tbody></table>';
+  tableHost.innerHTML = rows;
+}
+
+// Mutation handlers for the config modal
+function wpcfgRefresh(){
+  if(RACE_MODE==='quick') refreshPrefilledSegTimes();
+  renderWpConfig();
+  // Keep main page in sync too
+  computeStats();
+}
+function wpcfgRename(idx,val){ waypoints[idx].name = val.trim()||waypoints[idx].name; renderWpConfig(); }
+function wpcfgSetKm(idx, val){
+  const maxKm = gpx.totalDist/1000;
+  let km = parseFloat(val);
+  if(isNaN(km)) { renderWpConfig(); return; }
+  // Clamp within the track (leave a small margin from start/finish)
+  km = Math.max(0.1, Math.min(maxKm - 0.1, km));
+  waypoints[idx].km = +km.toFixed(1);
+  waypoints.sort((a,b)=>a.km-b.km);
+  invalidateSegCache?.();
+  wpcfgRefresh();
+}
+function wpcfgSetTechni(segIdx,ti){
+  if(!segOverrides[segIdx]) segOverrides[segIdx]={};
+  segOverrides[segIdx].techni = ti;
+  wpcfgRefresh();
+}
+function wpcfgSetSegTime(segIdx,unit,val){
+  const cur = segTimes[segIdx] ?? 0;
+  let h=Math.floor(cur/60), mn=Math.round(cur%60);
+  if(unit==='h') h=parseInt(val)||0; else mn=Math.min(59,parseInt(val)||0);
+  segTimes[segIdx]=h*60+mn; segTimesPrefilled[segIdx]=false;
+  renderWpConfig(); computeStats();
+}
+function wpcfgSetStop(idx,val){ waypoints[idx].stopTime=parseInt(val)||0; wpcfgRefresh(); }
+function wpcfgDelete(idx){
+  waypoints.splice(idx,1);
+  invalidateSegCache?.();
+  if(RACE_MODE==='quick') refreshPrefilledSegTimes();
+  renderWpConfig(); computeStats();
+}
+function wpcfgAdd(){
+  const maxKm=gpx.totalDist/1000;
+  const newKm=+(maxKm/2).toFixed(1);
+  waypoints.push({name:'Nouveau point',km:newKm,type:'waypoint'});
+  waypoints.sort((a,b)=>a.km-b.km);
+  invalidateSegCache?.();
+  if(RACE_MODE==='quick') refreshPrefilledSegTimes();
+  renderWpConfig(); computeStats();
+}
+
+// Pre-fill segment times from the analysis model (so quick mode starts realistic)
+function prefillSegTimes(){
+  segTimes = {};
+  segTimesPrefilled = {};
+  const sorted = [...waypoints].sort((a,b)=>a.km-b.km);
+  // Temporarily compute with analysis model
+  const savedMode = RACE_MODE;
+  RACE_MODE = 'analysis';
+  for(let s=1; s<sorted.length; s++){
+    const segKm = sorted[s].km - sorted[s-1].km;
+    const pace = getSegBasePace(s-1);
+    segTimes[s-1] = +(segKm * pace).toFixed(1);
+    segTimesPrefilled[s-1] = true;
+  }
+  RACE_MODE = savedMode;
+}
+
+// Recompute prefilled segment times when waypoints change (keep user-edited ones)
+function refreshPrefilledSegTimes(){
+  if(RACE_MODE !== 'quick') return;
+  const sorted = [...waypoints].sort((a,b)=>a.km-b.km);
+  const savedMode = RACE_MODE;
+  RACE_MODE = 'analysis';
+  const newTimes = {}, newPrefilled = {};
+  for(let s=1; s<sorted.length; s++){
+    const idx = s-1;
+    if(segTimes[idx] !== undefined && !segTimesPrefilled[idx]){
+      // keep user-edited value
+      newTimes[idx] = segTimes[idx];
+      newPrefilled[idx] = false;
+    } else {
+      const segKm = sorted[s].km - sorted[s-1].km;
+      newTimes[idx] = +(segKm * getSegBasePace(idx)).toFixed(1);
+      newPrefilled[idx] = true;
+    }
+  }
+  RACE_MODE = savedMode;
+  segTimes = newTimes;
+  segTimesPrefilled = newPrefilled;
+}
+
+function applyRaceModeUI(){
+  const isQuick = RACE_MODE === 'quick';
+  const ac = document.getElementById('analysisControls');
+  const qp = document.getElementById('quickPanel');
+  if(ac) ac.style.display = isQuick ? 'none' : '';
+  if(qp) qp.style.display = isQuick ? 'block' : 'none';
+  // Hide the per-segment coefficient panel button/area in quick mode
+  document.querySelectorAll('.analysis-only').forEach(el=> el.style.display = isQuick ? 'none' : '');
+  if(isQuick) renderQuickPanel();
+}
+
+// Render the quick-mode segment time inputs
+function renderQuickPanel(){
+  const body = document.getElementById('quickPanelBody');
+  if(!body) return;
+  const sorted = [...waypoints].sort((a,b)=>a.km-b.km);
+  let html = '';
+  let anyPrefilled = false;
+
+  for(let s=1; s<sorted.length; s++){
+    const idx = s-1;
+    const wa = sorted[s-1], wb = sorted[s];
+    const segKm = wb.km - wa.km;
+    const gain = getElevGainForSeg(wa.km, wb.km);
+    const t = segTimes[idx] ?? 0;
+    const h = Math.floor(t/60), mn = Math.round(t%60);
+    const pre = segTimesPrefilled[idx];
+    if(pre) anyPrefilled = true;
+
+    html += `<div class="quick-seg-row">
+      <span class="quick-seg-num">${s}</span>
+      <div class="quick-seg-info">
+        <div class="quick-seg-name">${wa.name} → ${wb.name}</div>
+        <div class="quick-seg-meta">${segKm.toFixed(1)} km · +${gain} m${pre?' · <span style="color:var(--orange)">pré-calculé</span>':''}</div>
+      </div>
+      <div class="quick-seg-inputs">
+        <input type="number" class="quick-t-inp" min="0" max="99" value="${h}" onchange="updateSegTime(${idx},'h',this.value)" aria-label="heures">
+        <span class="quick-t-unit">h</span>
+        <input type="number" class="quick-t-inp" min="0" max="59" value="${String(mn).padStart(2,'0')}" onchange="updateSegTime(${idx},'m',this.value)" aria-label="minutes">
+      </div>
+    </div>`;
+
+    if(isRefuel(wb.type)){
+      if(wb.stopTime == null) wb.stopTime = 5; // default consistent with waypoints panel
+      const stop = wb.stopTime;
+      const safeName = (wb.name||'').replace(/'/g,"\\'");
+      html += `<div class="quick-ravito-row">
+        <span class="quick-seg-num"></span>
+        <div class="quick-ravito-label">⛺ Arrêt ${wb.name}</div>
+        <div class="quick-seg-inputs">
+          <input type="number" class="quick-t-inp" min="0" max="99" value="${stop}" onchange="updateRavitoStop('${safeName}',this.value)" aria-label="minutes arret">
+          <span class="quick-t-unit">min</span>
+        </div>
+      </div>`;
+    }
+  }
+  body.innerHTML = html;
+
+  const note = document.querySelector('.quick-prefill-note');
+  if(note) note.style.display = anyPrefilled ? 'flex' : 'none';
+  updateQuickTotal();
+}
+
+function updateSegTime(idx, unit, val){
+  const cur = segTimes[idx] ?? 0;
+  let h = Math.floor(cur/60), mn = Math.round(cur%60);
+  if(unit==='h') h = parseInt(val)||0;
+  else mn = Math.min(59, parseInt(val)||0);
+  segTimes[idx] = h*60 + mn;
+  segTimesPrefilled[idx] = false;
+  computeStats();
+  drawElevation();
+  buildTable();
+  renderQuickPanel();
+}
+
+function updateRavitoStop(name, val){
+  const wp = waypoints.find(w=>w.name===name);
+  if(wp){ wp.stopTime = parseInt(val)||0; }
+  computeStats();
+  drawElevation();
+  buildTable();
+  updateQuickTotal();
+  renderWaypoints(); // keep the (read-only) stop value in the waypoints panel in sync
+}
+
+function updateQuickTotal(){
+  const el = document.getElementById('quickTotalTime');
+  if(!el) return;
+  el.textContent = fmtDuration(getTotalRaceMin());
 }
 
 // ══════════════════════════════════════════
@@ -1814,6 +2525,17 @@ function processTrack(points,name,isTraining=false){
   // (used by getSegBasePace to weight terrain-based pace per segment)
   invalidateSegCache();
   _totalEffortKm = null;
+  // Per-race choice: profile usage resets off for each new race
+  USE_PROFILE_ABAQUE = false;
+  _activeProfileAbaque = null;
+  FATIGUE_K = 0.30;
+  // Reset to analysis mode; the mode modal will let the user choose for fresh imports
+  RACE_MODE = 'analysis';
+  segTimes = {}; segTimesPrefilled = {};
+  applyRaceModeUI();
+  // Reset race mode for fresh load (popup will set it)
+  RACE_MODE = 'analysis';
+  segTimes = {};
   const _allM = sm.map((_,i)=>{
     const SMOOTH=25; let i0=i,i1=i,dB=0,dF=0;
     while(i0>0&&dB<SMOOTH){dB+=haversine(sm[i0-1].lat,sm[i0-1].lon,sm[i0].lat,sm[i0].lon);i0--;}
@@ -1866,6 +2588,12 @@ function processTrack(points,name,isTraining=false){
   }
   drawElevation(); renderWaypoints();
   notify('✓ '+name+' · '+(totalDist/1000).toFixed(1)+' km','ok');
+  // Fresh GPX load → ask the user which planning mode to use
+  // (skipped when restoring a saved session, which sets _skipModePopup)
+  if(!processTrack._skipModePopup){
+    openModeModal();
+  }
+  processTrack._skipModePopup = false;
 }
 
 // ══════════════════════════════════════════
@@ -1891,6 +2619,7 @@ function computeBasePaceFromGpx(){
 }
 
 function getEffortMultiplier() {
+  if(RACE_MODE === 'quick') return 1; // manual times already final in quick mode
   const v = parseInt(document.getElementById('effortSlider').value);
   return 1 + v / 100;
 }
@@ -1901,6 +2630,8 @@ function fmtTime(base,add){const[bh,bm]=base.split(':').map(Number),t=bh*60+bm+a
 
 function computeStats(){
   if(!gpx)return;
+  // Show profile toggle if a calibrated profile exists
+  updateProfileToggle();
   const dk = gpx.totalDist/1000;
   const tot = getTotalRaceMin();
   const mv = tot - getTotalStopMin();
@@ -1951,12 +2682,59 @@ function getBasePace(){ return BASE_PACE_SOLIDE * getEffortMultiplier(); }
 // Effective pace for segment index i (between sorted[i-1] and sorted[i])
 // Applies per-segment overrides on top of global BASE_PACE_SOLIDE
 // Pace multiplier from abaque (shared between drawElevation and getSegBasePace)
+// When true, use the personal profile abaque instead of the generic one
+let USE_PROFILE_ABAQUE = false;
+let _activeProfileAbaque = null; // cached array of 10 multipliers
+
 function paceMultiplierAbaque(g){
-  // Empirically calibrated on 3 real runners (X-Traversée 11h30-14h00)
+  if(USE_PROFILE_ABAQUE && _activeProfileAbaque){
+    // bins: <-16,-16/-12,-12/-8,-8/-4,-4/0,0/4,4/8,8/12,12/16,>16
+    let b;
+    if(g<=-16)b=0; else if(g<=-12)b=1; else if(g<=-8)b=2; else if(g<=-4)b=3;
+    else if(g<=0)b=4; else if(g<=4)b=5; else if(g<=8)b=6; else if(g<=12)b=7;
+    else if(g<=16)b=8; else b=9;
+    return _activeProfileAbaque[b];
+  }
+  // Generic — empirically calibrated on 3 real runners (X-Traversée 11h30-14h00)
   if(g<=-16)return 1.73; if(g<=-12)return 1.39; if(g<=-8)return 1.17;
   if(g<=-4)return 0.87;  if(g<=0)return 0.93;   if(g<=4)return 1.07;
   if(g<=8)return 1.42;   if(g<=12)return 1.85;  if(g<=16)return 2.42;
   return 3.51;
+}
+
+// Toggle profile usage for the current race (called from app UI)
+function setUseProfile(on){
+  USE_PROFILE_ABAQUE = on;
+  if(on){
+    const prof = loadProfile();
+    _activeProfileAbaque = getProfileAbaque(prof);
+    if(prof.fatigueK != null) FATIGUE_K = prof.fatigueK;
+  } else {
+    _activeProfileAbaque = null;
+    FATIGUE_K = 0.30;
+  }
+  // Recompute everything
+  if(gpx){
+    invalidateSegCache();
+    // recompute global mean mult with new abaque
+    const sm = gpx.points;
+    let sumM=0;
+    for(let i=0;i<sm.length;i++){
+      const S=25; let i0=i,i1=i,dB=0,dF=0;
+      while(i0>0&&dB<S){dB+=haversine(sm[i0-1].lat,sm[i0-1].lon,sm[i0].lat,sm[i0].lon);i0--;}
+      while(i1<sm.length-1&&dF<S){dF+=haversine(sm[i1].lat,sm[i1].lon,sm[i1+1].lat,sm[i1+1].lon);i1++;}
+      const dLat=(sm[i1].lat-sm[i0].lat)*111320;
+      const dLon=(sm[i1].lon-sm[i0].lon)*111320*Math.cos(sm[i].lat*Math.PI/180);
+      const horiz=Math.sqrt(dLat*dLat+dLon*dLon);
+      const dEle=sm[i1].ele-sm[i0].ele;
+      const g=horiz>1?Math.max(-25,Math.min(25,(dEle/horiz)*100)):0;
+      sumM+=paceMultiplierAbaque(g);
+    }
+    gpx._globalMeanMult = sumM/sm.length;
+    computeStats();
+    drawElevation();
+    buildTable();
+  }
 }
 
 // Compute mean grade multiplier for a km range from GPX points
@@ -2026,6 +2804,20 @@ function fatigueForSeg(fromKm, toKm){
 
 function getSegBasePace(segIdx){
   if(!gpx) return BASE_PACE_SOLIDE;
+
+  // QUICK MODE: pace = manual segment time / segment distance
+  if(RACE_MODE === 'quick'){
+    const sortedQ = [...waypoints].sort((a,b)=>a.km-b.km);
+    if(segIdx < sortedQ.length-1){
+      const segKm = sortedQ[segIdx+1].km - sortedQ[segIdx].km;
+      const t = segTimes[segIdx];
+      if(t != null && segKm > 0){
+        return t / segKm; // min/km, as entered
+      }
+    }
+    return BASE_PACE_SOLIDE;
+  }
+
   const ov = segOverrides[segIdx] || {};
   const effort     = ov.effort  ?? 0;
   const techni     = ov.techni  ?? 0;
@@ -2231,9 +3023,10 @@ function renderWaypoints(){
         <span class="wp-stop-label">⏱ Arrêt</span>
         <input type="number" class="wp-stop-inp" min="0" max="60" step="1"
           value="${wp.stopTime??5}"
+          ${RACE_MODE==='quick'?'readonly title="Modifiable dans le panneau Mode rapide ci-dessus"':''}
           onchange="updateWpStop(${i},this.value)"
           onclick="event.stopPropagation()">
-        <span class="wp-stop-unit">min</span>
+        <span class="wp-stop-unit">min${RACE_MODE==='quick'?' 🔒':''}</span>
       </div>`:''}
       ${wpTypeBadge(wp.type)}
     </div>`;
@@ -2292,9 +3085,11 @@ function updateWpKm(i,v,inp){
 // Appelé à la fin du slide (onchange) — tri + re-render de la liste
 function finalizeWpKm(i){
   waypoints.sort((a,b)=>a.km-b.km);
+  if(RACE_MODE==='quick'){ refreshPrefilledSegTimes(); }
   renderWaypoints();
   buildTable();
   updateSegNav();
+  if(RACE_MODE==='quick') renderQuickPanel();
   if(currentSegPanelIdx >= 0) loadSegPanel(currentSegPanelIdx);
 }
 function updateWpName(i, v){
@@ -2311,10 +3106,11 @@ function setWpType(i,t){
   const inp = document.querySelectorAll('.wp-name-input')[i];
   if(inp) waypoints[i].name = inp.value;
   waypoints[i].type=t;
+  if(RACE_MODE==='quick'){ refreshPrefilledSegTimes(); renderQuickPanel(); }
   renderWaypoints();drawElevation();computeStats();buildTable();drawLeafletWaypoints();
   if(currentSegPanelIdx>=0)loadSegPanel(currentSegPanelIdx);
 }
-function deleteWp(i){waypoints.splice(i,1);renderWaypoints();drawElevation();renderCutoffs();buildTable();drawLeafletWaypoints();updateSegNav();if(currentSegPanelIdx>=0)loadSegPanel(currentSegPanelIdx);}
+function deleteWp(i){waypoints.splice(i,1);if(RACE_MODE==='quick'){refreshPrefilledSegTimes();renderQuickPanel();}renderWaypoints();drawElevation();renderCutoffs();buildTable();drawLeafletWaypoints();updateSegNav();if(currentSegPanelIdx>=0)loadSegPanel(currentSegPanelIdx);}
 function openAddWpModal(){if(!gpx){notify('Importez d\'abord un GPX','err');return;}document.getElementById('wpKmInput').max=(gpx.totalDist/1000).toFixed(1);document.getElementById('addWpModal').classList.add('show');document.getElementById('wpNameInput').focus();}
 function closeAddWpModal(){document.getElementById('addWpModal').classList.remove('show');}
 function confirmAddWp(){
@@ -2324,6 +3120,7 @@ function confirmAddWp(){
   const notes=document.getElementById('wpNotesInput').value.trim();
   waypoints.push({name,km:+km.toFixed(1),type,notes});
   waypoints.sort((a,b)=>a.km-b.km);
+  if(RACE_MODE==='quick'){ refreshPrefilledSegTimes(); renderQuickPanel(); }
   closeAddWpModal();renderWaypoints();drawElevation();renderCutoffs();buildTable();
   notify('✓ '+name+' ajouté','ok');
 }
@@ -2485,13 +3282,20 @@ function openSession(filename){
   waypoints     = (data.waypoints || []).map(wp=>({...wp}));
   // Restore per-segment overrides if saved
   Object.assign(segOverrides, data.segOverrides || {});
+  // Restore race mode and quick segment times
+  RACE_MODE = data.raceMode || 'analysis';
+  segTimes = data.segTimes ? {...data.segTimes} : {};
 
-  // Process track points
+  // Process track points (skip the mode popup — mode is restored from session)
   if(data.trackPoints && data.trackPoints.length){
     const points = data.trackPoints.map(([lat,lon,ele])=>({lat,lon,ele}));
     gpx = null;
+    processTrack._skipModePopup = true;
     processTrack(points, data.gpxName || data.name, data.sType==='training');
   }
+
+  // Apply mode UI (shows quick panel or analysis controls)
+  applyRaceModeUI();
 
   // Show app screen first so layout dimensions are available
   showScreen('appScreen');
@@ -2519,6 +3323,19 @@ function deleteLibItem(filename){
 // ══════════════════════════════════════════
 // ELEVATION CHART
 // ══════════════════════════════════════════
+// Render the elevation chart into an arbitrary container (used by wp config modal).
+function drawElevationInto(host){
+  if(!gpx || !host) return;
+  const mainSvg = document.getElementById('elevSvg');
+  const mainWrap = document.getElementById('elevChartWrap');
+  if(!mainSvg || !mainWrap){ return; }
+  drawElevation();
+  const w = mainSvg.getAttribute('width') || mainWrap.clientWidth || 700;
+  const h = mainSvg.getAttribute('height') || 240;
+  const clone = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;" xmlns="http://www.w3.org/2000/svg">${mainSvg.innerHTML}</svg>`;
+  host.innerHTML = clone;
+}
+
 function drawElevation(){
   const svg=document.getElementById('elevSvg'); if(!gpx)return;
   const wrap=document.getElementById('elevChartWrap');
@@ -2833,7 +3650,7 @@ ${xTicks.map(t=>`<line x1="${t.x.toFixed(1)}" y1="${pad.t}" x2="${t.x.toFixed(1)
 <path d="${elPathD}" fill="none" stroke="#FF6B35" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#chartClip)"/>
 
 <!-- Pace curve (blue, right axis) -->
-<path d="${pacePath}" fill="none" stroke="#58A6FF" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#chartClip)" opacity="0.9"/>
+<path d="${RACE_MODE==='quick' ? '' : pacePath}" fill="none" stroke="#58A6FF" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#chartClip)" opacity="0.9"/>
 
 <!-- Segment avg pace dashed lines -->
 ${segAvgLines.join('')}
@@ -3186,12 +4003,514 @@ function hideMapCursor() {
   if (elevCursorMarker && leafletMap) { leafletMap.removeLayer(elevCursorMarker); elevCursorMarker = null; }
 }
 
-// ══════════════════════════════════════════
-// TABLE VIEW
-// ══════════════════════════════════════════
-// ══════════════════════════════════════════
-// CHEATSHEET EXPORT
-// ══════════════════════════════════════════
+const PROFILE_KEY = 'trp_profile';
+const ABAQUE_BINS = [[-100,-16],[-16,-12],[-12,-8],[-8,-4],[-4,0],[0,4],[4,8],[8,12],[12,16],[16,100]];
+const GENERIC_ABAQUE = [1.73,1.39,1.17,0.87,0.93,1.07,1.42,1.85,2.42,3.51];
+
+function loadProfile(){
+  try{ return JSON.parse(localStorage.getItem(PROFILE_KEY)) || {traces:[]}; }
+  catch(e){ return {traces:[]}; }
+}
+function saveProfile(p){ localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); }
+
+function openProfilePage(){
+  showScreen('profileScreen');
+  renderProfile();
+  setupProfileDropzone();
+}
+
+let _profDzReady = false;
+function setupProfileDropzone(){
+  if(_profDzReady) return;
+  _profDzReady = true;
+  const dz = document.getElementById('profDropzone');
+  const inp = document.getElementById('profFileInput');
+  dz.addEventListener('click', ()=>inp.click());
+  dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', ()=>dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e=>{
+    e.preventDefault(); dz.classList.remove('dragover');
+    handleProfileFiles(e.dataTransfer.files);
+  });
+}
+
+async function handleProfileFiles(files){
+  const prof = loadProfile();
+  for(const file of files){
+    const isFit = /\.fit$/i.test(file.name);
+    let parsed;
+    if(isFit){
+      const buf = await file.arrayBuffer();
+      parsed = await parseFitTrace(buf, file.name);
+    } else {
+      const text = await file.text();
+      parsed = parseTimedTrace(text, file.name);
+    }
+    if(parsed) prof.traces.push(parsed);
+  }
+  recomputeProfileAbaque(prof);
+  saveProfile(prof);
+  renderProfile();
+}
+
+// Parse FIT (binary) → points with lat/lon/ele/time, then same stats as GPX/TCX
+// Built-in FIT binary decoder — no external dependency.
+// Decodes the FIT protocol directly: header, definition + data messages,
+// extracting record messages (global msg 20) with lat/lon/altitude/timestamp.
+function decodeFitBinary(buffer){
+  const data = new Uint8Array(buffer);
+  const dv = new DataView(buffer);
+  if(data.length < 14) throw new Error('Fichier trop court');
+  const hdrSize = data[0];
+  const dataSize = dv.getUint32(4, true);
+  const sig = String.fromCharCode(data[8],data[9],data[10],data[11]);
+  if(sig !== '.FIT') throw new Error('Signature FIT invalide');
+
+  let pos = hdrSize;
+  const dataEnd = Math.min(data.length, hdrSize + dataSize);
+  const defs = {};
+  const records = [];
+
+  // base type → byte size
+  const baseSize = bt => {
+    const t = bt & 0x1F;
+    const sizes = {0:1,1:1,2:1,3:2,4:2,5:4,6:4,7:1,8:4,9:8,10:1,11:2,12:4,13:1,14:2,15:4,16:8};
+    return sizes[t] || 1;
+  };
+  const readField = (raw, bt, little) => {
+    const t = bt & 0x1F;
+    const ddv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+    try{
+      switch(t){
+        case 0: case 2: case 10: case 13: return ddv.getUint8(0);
+        case 1: return ddv.getInt8(0);
+        case 3: case 14: return ddv.getInt16(0, little);
+        case 4: case 11: return ddv.getUint16(0, little);
+        case 5: case 15: return ddv.getInt32(0, little);
+        case 6: case 12: return ddv.getUint32(0, little);
+        case 8: return ddv.getFloat32(0, little);
+        case 9: return ddv.getFloat64(0, little);
+        case 7: return null; // string
+        case 16: return Number(ddv.getBigInt64(0, little));
+        default: return null;
+      }
+    }catch(e){ return null; }
+  };
+
+  let guard = 0;
+  while(pos < dataEnd && guard++ < 2_000_000){
+    const hdr = data[pos]; pos++;
+    if(hdr & 0x80){
+      // compressed timestamp header → data message, local type in bits 5-6
+      const lt = (hdr >> 5) & 0x03;
+      const d = defs[lt];
+      if(!d){ break; }
+      const vals = {};
+      for(const f of d.fields){
+        const raw = data.subarray(pos, pos+f.size); pos += f.size;
+        if(f.size === baseSize(f.bt)) vals[f.num] = readField(raw, f.bt, d.little);
+      }
+      if(d.gmsg === 20) records.push(vals);
+      continue;
+    }
+    const isDef = (hdr >> 6) & 0x01;
+    const lt = hdr & 0x0F;
+    if(isDef){
+      pos++; // reserved
+      const arch = data[pos]; pos++;
+      const little = (arch === 0);
+      const gmsg = dv.getUint16(pos, little); pos += 2;
+      const nFields = data[pos]; pos++;
+      const fields = [];
+      for(let i=0;i<nFields;i++){
+        fields.push({num:data[pos], size:data[pos+1], bt:data[pos+2]});
+        pos += 3;
+      }
+      // developer fields
+      if(hdr & 0x20){
+        const nDev = data[pos]; pos++;
+        pos += 3*nDev;
+      }
+      defs[lt] = {gmsg, fields, little};
+    } else {
+      const d = defs[lt];
+      if(!d){ break; }
+      const vals = {};
+      for(const f of d.fields){
+        const raw = data.subarray(pos, pos+f.size); pos += f.size;
+        if(f.size === baseSize(f.bt)) vals[f.num] = readField(raw, f.bt, d.little);
+      }
+      if(d.gmsg === 20) records.push(vals);
+    }
+  }
+  return records;
+}
+
+function parseFitTrace(buffer, filename){
+  return new Promise((resolve)=>{
+    const name = filename.replace(/\.fit$/i,'');
+    const fail = (msg)=>{
+      notify(msg,'err');
+      resolve({name, hasTime:false, distKm:0, dPlus:0, durSec:0, abaque:null, flatPace:null, fatigueK:null});
+    };
+    let records;
+    try{
+      records = decodeFitBinary(buffer);
+    }catch(e){
+      return fail('Erreur lecture FIT: '+e.message);
+    }
+    if(!records || records.length < 2){
+      return fail('FIT sans points GPS exploitables');
+    }
+    // FIT record field numbers: 0=lat,1=lon,2=altitude,253=timestamp,73=enhanced_altitude
+    const SC = 180.0 / Math.pow(2,31);      // semicircles → degrees
+    const FIT_EPOCH = 631065600 * 1000;     // 1989-12-31 00:00 UTC in ms
+    const pts = [];
+    for(const r of records){
+      const rawLat = r[0], rawLon = r[1];
+      if(rawLat == null || rawLon == null) continue;
+      if(rawLat === 0x7FFFFFFF || rawLon === 0x7FFFFFFF) continue;
+      const lat = rawLat * SC, lon = rawLon * SC;
+      if(lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+      // altitude: enhanced (73) preferred, else (2). FIT alt = value/5 - 500
+      let ele = 0;
+      if(r[73] != null) ele = r[73]/5 - 500;
+      else if(r[2] != null) ele = r[2]/5 - 500;
+      const time = (r[253] != null) ? (r[253]*1000 + FIT_EPOCH) : null;
+      pts.push({lat, lon, ele, time});
+    }
+    if(pts.length < 2){
+      return fail('FIT sans coordonnées GPS valides');
+    }
+    resolve(buildTraceResult(pts, name));
+  });
+}
+
+// Shared: from points {lat,lon,ele,time} → trace result with stats + abaque
+function buildTraceResult(pts, name){
+  const hasTime = pts.length>1 && pts.every(p=>p.time!=null && !isNaN(p.time));
+  let dist=0, gain=0, acc=0;
+  for(let i=1;i<pts.length;i++){
+    dist += haversine(pts[i-1].lat,pts[i-1].lon,pts[i].lat,pts[i].lon);
+    const de=pts[i].ele-pts[i-1].ele; acc+=de;
+    if(acc>1.5){gain+=acc;acc=0;} else if(acc<-1.5){acc=0;}
+  }
+  const durSec = hasTime ? (pts[pts.length-1].time - pts[0].time)/1000 : 0;
+  const result = {
+    name, hasTime,
+    distKm:+(dist/1000).toFixed(1), dPlus:Math.round(gain), durSec:Math.round(durSec),
+    abaque:null, flatPace:null, fatigueK:null,
+  };
+  if(hasTime){
+    const ext = extractAbaque(pts);
+    result.abaque = ext.abaque; result.binDist = ext.binDist;
+    result.flatPace = ext.flatPace; result.fatigueK = ext.fatigueK;
+    result.noElevation = ext.noElevation;
+    // If no elevation, the abaque is meaningless — discard it
+    if(ext.noElevation){ result.abaque = null; }
+  }
+  return result;
+}
+
+// Parse GPX or TCX with timestamps → points with lat/lon/ele/time
+function parseTimedTrace(text, filename){
+  const name = filename.replace(/\.(gpx|tcx)$/i,'');
+  const isTcx = /<TrainingCenterDatabase|<Trackpoint>/i.test(text);
+  const pts = [];
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'text/xml');
+
+  if(isTcx){
+    const tps = doc.getElementsByTagName('Trackpoint');
+    for(const tp of tps){
+      const posEl = tp.getElementsByTagName('Position')[0];
+      const timeEl = tp.getElementsByTagName('Time')[0];
+      const altEl = tp.getElementsByTagName('AltitudeMeters')[0];
+      if(!posEl || !timeEl) continue;
+      const lat = parseFloat(posEl.getElementsByTagName('LatitudeDegrees')[0]?.textContent);
+      const lon = parseFloat(posEl.getElementsByTagName('LongitudeDegrees')[0]?.textContent);
+      const ele = altEl ? parseFloat(altEl.textContent) : 0;
+      const time = new Date(timeEl.textContent).getTime();
+      if(!isNaN(lat)&&!isNaN(lon)) pts.push({lat,lon,ele,time});
+    }
+  } else {
+    const tps = doc.getElementsByTagName('trkpt');
+    for(const tp of tps){
+      const lat = parseFloat(tp.getAttribute('lat'));
+      const lon = parseFloat(tp.getAttribute('lon'));
+      const eleEl = tp.getElementsByTagName('ele')[0];
+      const timeEl = tp.getElementsByTagName('time')[0];
+      const ele = eleEl ? parseFloat(eleEl.textContent) : 0;
+      const time = timeEl ? new Date(timeEl.textContent).getTime() : null;
+      if(!isNaN(lat)&&!isNaN(lon)) pts.push({lat,lon,ele,time});
+    }
+  }
+
+  return buildTraceResult(pts, name);
+}
+
+// Extract personal abaque from a timed trace
+function extractAbaque(pts){
+  const binDist = ABAQUE_BINS.map(()=>0);
+  const binTime = ABAQUE_BINS.map(()=>0);
+
+  // Cumulative distance for grade
+  const cumD = [0];
+  for(let i=1;i<pts.length;i++) cumD.push(cumD[i-1]+haversine(pts[i-1].lat,pts[i-1].lon,pts[i].lat,pts[i].lon));
+
+  function gradeAt(i){
+    const S=25; let i0=i,i1=i,dB=0,dF=0;
+    while(i0>0&&dB<S){dB+=haversine(pts[i0-1].lat,pts[i0-1].lon,pts[i0].lat,pts[i0].lon);i0--;}
+    while(i1<pts.length-1&&dF<S){dF+=haversine(pts[i1].lat,pts[i1].lon,pts[i1+1].lat,pts[i1+1].lon);i1++;}
+    const dLat=(pts[i1].lat-pts[i0].lat)*111320;
+    const dLon=(pts[i1].lon-pts[i0].lon)*111320*Math.cos(pts[i].lat*Math.PI/180);
+    const horiz=Math.sqrt(dLat*dLat+dLon*dLon);
+    const dEle=pts[i1].ele-pts[i0].ele;
+    return horiz>1?Math.max(-25,Math.min(25,(dEle/horiz)*100)):0;
+  }
+  function binIdx(g){
+    for(let b=0;b<ABAQUE_BINS.length;b++) if(g>ABAQUE_BINS[b][0] && g<=ABAQUE_BINS[b][1]) return b;
+    return g<=-16?0:ABAQUE_BINS.length-1;
+  }
+
+  // For fatigue: track speed in first vs second half at similar grades
+  const firstHalf={dist:0,time:0}, secondHalf={dist:0,time:0};
+  const totalD = cumD[cumD.length-1];
+
+  for(let i=1;i<pts.length;i++){
+    const dt=(pts[i].time-pts[i-1].time)/1000; // sec
+    const dd=haversine(pts[i-1].lat,pts[i-1].lon,pts[i].lat,pts[i].lon); // m
+    if(dt<=0||dt>10) continue;       // GPS gap
+    const kmh=(dd/dt)*3.6;
+    if(kmh<1||kmh>25) continue;      // stopped or glitch
+    const g=gradeAt(i);
+    const b=binIdx(g);
+    binDist[b]+=dd; binTime[b]+=dt;
+    // fatigue tracking (flat-ish only, -4 to +4%)
+    if(g>-4&&g<4){
+      if(cumD[i]<totalD/2){ firstHalf.dist+=dd; firstHalf.time+=dt; }
+      else { secondHalf.dist+=dd; secondHalf.time+=dt; }
+    }
+  }
+
+  // pace per bin (min/km)
+  const pace = binDist.map((d,b)=> d>0 ? (binTime[b]/60)/(d/1000) : null);
+  // flat pace = bins (-4,0] and (0,4]
+  const flatBins=[4,5];
+  let fp=[], fd=0;
+  flatBins.forEach(b=>{ if(binDist[b]>0){ fp.push(binTime[b]); fd+=binDist[b]; } });
+  const flatPace = fd>0 ? (fp.reduce((a,b)=>a+b,0)/60)/(fd/1000) : null;
+  // abaque mult per bin (only if >200m data)
+  const abaque = pace.map((p,b)=> (p!==null && binDist[b]>200 && flatPace) ? +(p/flatPace).toFixed(3) : null);
+
+  // Flag traces with no usable elevation (flat/missing altitude → unreliable abaque)
+  const eleRange = Math.max(...pts.map(p=>p.ele)) - Math.min(...pts.map(p=>p.ele));
+  const noElevation = eleRange < 10;
+
+  // Fatigue: ratio second-half pace / first-half pace on flat terrain
+  let fatigueK = null;
+  if(firstHalf.dist>500 && secondHalf.dist>500){
+    const p1=(firstHalf.time/firstHalf.dist), p2=(secondHalf.time/secondHalf.dist);
+    // midpoints at 25% and 75% of race; ratio = (1+0.75K)/(1+0.25K)
+    const ratio=p2/p1;
+    // solve K: ratio = (1+0.75K)/(1+0.25K) → K=(ratio-1)/(0.75-0.25*ratio)
+    const denom=0.75-0.25*ratio;
+    if(denom>0.01){ fatigueK = Math.max(0, Math.min(0.6, (ratio-1)/denom)); }
+  }
+
+  return { abaque, binDist, flatPace:flatPace?+flatPace.toFixed(2):null, fatigueK:fatigueK!==null?+fatigueK.toFixed(2):null, noElevation };
+}
+
+// Aggregate all traces into one profile abaque (distance-weighted)
+function recomputeProfileAbaque(prof){
+  const timed = prof.traces.filter(t=>t.hasTime && t.abaque);
+  if(timed.length===0){ prof.abaque=null; prof.flatPace=null; prof.fatigueK=null; return; }
+
+  // weighted avg per bin
+  const agg = ABAQUE_BINS.map((_,b)=>{
+    let wsum=0, vsum=0;
+    timed.forEach(t=>{
+      if(t.abaque[b]!==null && t.binDist[b]>200){
+        wsum+=t.binDist[b]; vsum+=t.abaque[b]*t.binDist[b];
+      }
+    });
+    return wsum>0 ? +(vsum/wsum).toFixed(3) : null; // null = fall back to generic
+  });
+  prof.abaque = agg;
+
+  // flat pace = weighted avg of trace flat paces
+  let fpW=0, fpV=0;
+  timed.forEach(t=>{ if(t.flatPace){ fpW+=t.distKm; fpV+=t.flatPace*t.distKm; } });
+  prof.flatPace = fpW>0 ? +(fpV/fpW).toFixed(2) : null;
+
+  // fatigue: only from LONG traces (>3h) — average
+  const longTraces = timed.filter(t=>t.durSec>3*3600 && t.fatigueK!==null);
+  if(longTraces.length>0){
+    prof.fatigueK = +(longTraces.reduce((s,t)=>s+t.fatigueK,0)/longTraces.length).toFixed(2);
+    prof.fatigueConfidence = 'mesurée';
+  } else {
+    prof.fatigueK = 0.30; // generic default
+    prof.fatigueConfidence = 'générique';
+  }
+}
+
+// Get effective abaque (personal where available, generic elsewhere)
+function getProfileAbaque(prof){
+  if(!prof || !prof.abaque) return GENERIC_ABAQUE.slice();
+  return prof.abaque.map((v,b)=> v!==null ? v : GENERIC_ABAQUE[b]);
+}
+
+function renderProfile(){
+  const prof = loadProfile();
+  const hasTraces = prof.traces.length>0;
+
+  document.getElementById('profStats').style.display = hasTraces?'grid':'none';
+  document.getElementById('profTracesCard').style.display = hasTraces?'block':'none';
+  document.getElementById('profAbaqueCard').style.display = (prof.abaque)?'block':'none';
+  document.getElementById('profResetWrap').style.display = hasTraces?'block':'none';
+
+  // Stats
+  const timed = prof.traces.filter(t=>t.hasTime);
+  document.getElementById('profStatCount').textContent = timed.length;
+  document.getElementById('profStatFlat').innerHTML = prof.flatPace
+    ? fmtPace(prof.flatPace)+'<span style="font-size:12px;color:var(--muted2);"> /km</span>' : '—';
+  document.getElementById('profStatFatigue').innerHTML = prof.fatigueK!=null
+    ? '×'+(1+prof.fatigueK).toFixed(2)+(prof.fatigueConfidence==='générique'?'<span style="font-size:11px;color:var(--muted2);"> (gén.)</span>':'') : '—';
+
+  // Traces list
+  const list = document.getElementById('profTracesList');
+  list.innerHTML = prof.traces.map((t,i)=>{
+    const durStr = t.hasTime ? fmtDuration(t.durSec/60) : '—';
+    let meta, isErr=false, icon='⛰️', badge='Chronométrée';
+    if(!t.hasTime){
+      meta = 'Pas de timestamps — exporte ta propre activité';
+      isErr = true; icon = '⚠️'; badge = '';
+    } else if(t.noElevation){
+      meta = `${t.distKm} km · pas d'altitude — abaque impossible`;
+      isErr = true; icon = '⚠️'; badge = '';
+    } else {
+      meta = `${t.distKm} km · ${t.dPlus} m D+ · ${durStr}`;
+    }
+    return `<div class="prof-trace-row">
+      <span class="prof-trace-icon">${icon}</span>
+      <div class="prof-trace-info">
+        <div class="prof-trace-name">${t.name}</div>
+        <div class="prof-trace-meta ${isErr?'err':''}">${meta}</div>
+      </div>
+      ${badge?`<span class="prof-trace-badge">${badge}</span>`:''}
+      <span class="prof-trace-del" onclick="deleteProfileTrace(${i})">🗑</span>
+    </div>`;
+  }).join('');
+
+  // Abaque chart
+  if(prof.abaque) drawProfileAbaque(prof);
+}
+
+function deleteProfileTrace(idx){
+  const prof = loadProfile();
+  prof.traces.splice(idx,1);
+  recomputeProfileAbaque(prof);
+  saveProfile(prof);
+  renderProfile();
+}
+
+// Show & update the in-app profile toggle (called from computeStats)
+function updateProfileToggle(){
+  const row = document.getElementById('profileToggleRow');
+  if(!row) return;
+  const prof = loadProfile();
+  const hasProfile = prof && prof.abaque;
+  row.style.display = hasProfile ? 'flex' : 'none';
+  if(hasProfile){
+    const chk = document.getElementById('useProfileChk');
+    if(chk) chk.checked = USE_PROFILE_ABAQUE;
+    const hint = document.getElementById('profileToggleHint');
+    if(hint){
+      const covered = prof.abaque.filter(v=>v!==null).length;
+      const fatStr = prof.fatigueConfidence==='mesurée' ? `fatigue ×${(1+prof.fatigueK).toFixed(2)}` : 'fatigue générique';
+      hint.textContent = `Allure ${fmtPace(prof.flatPace)}/km · ${covered}/10 pentes · ${fatStr}`;
+    }
+  }
+}
+
+function resetProfile(){
+  if(!confirm('Réinitialiser ton profil ? Toutes les traces seront supprimées.')) return;
+  localStorage.removeItem(PROFILE_KEY);
+  renderProfile();
+}
+
+function drawProfileAbaque(prof){
+  const W=680, H=320, pad={l:56,r:20,t:20,b:68};
+  const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
+  const eff = getProfileAbaque(prof);
+  const flatPace = prof.flatPace || 6.0;
+
+  // Convert multipliers to real pace (min/km)
+  const paces = eff.map(m => flatPace * m);
+  const maxPace = Math.max(26, ...paces);
+  const minPace = Math.max(3, Math.min(...paces) - 1);
+
+  // Bin colours matching the slope map zones
+  const BIN_COLORS = ['#7F77DD','#6B63C9','#185FA5','#378ADD','#85B7EB','#639922','#EF9F27','#BA7517','#E24B4A','#A32D2D'];
+  // X position: each bin gets equal width
+  const binW = cW / ABAQUE_BINS.length;
+  const xL = b => pad.l + b*binW;
+  const xR = b => pad.l + (b+1)*binW;
+  const yS = p => pad.t + cH*(p-minPace)/(maxPace-minPace);
+
+  function fmtP(p){ const m=Math.floor(p),s=Math.round((p-m)*60); return m+':'+String(s).padStart(2,'0'); }
+
+  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;" role="img" aria-label="Mon abaque personnel pente vers allure">`;
+  svg+=`<rect x="${pad.l}" y="${pad.t}" width="${cW}" height="${cH}" fill="rgba(216,90,48,0.04)"/>`;
+
+  // Y grid + pace labels
+  const yTicks=[];
+  for(let p=Math.ceil(minPace); p<=maxPace; p+=5) yTicks.push(p);
+  if(!yTicks.includes(Math.round(maxPace))) yTicks.push(Math.round(maxPace));
+  yTicks.forEach(p=>{
+    const y=yS(p);
+    if(y<pad.t-1||y>pad.t+cH+1) return;
+    svg+=`<line x1="${pad.l}" y1="${y.toFixed(1)}" x2="${pad.l+cW}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.06)"/>`;
+    svg+=`<text x="${pad.l-8}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="10" fill="#6B7178" font-family="Arial">${fmtP(p)}</text>`;
+  });
+  svg+=`<text x="22" y="${pad.t+cH/2}" text-anchor="middle" font-size="10" fill="#6B7178" font-family="Arial" transform="rotate(-90 22 ${pad.t+cH/2})">Allure (min/km)</text>`;
+
+  // X labels (grade ranges)
+  const XLBL=['−20','−15','−12','−8','−4','0','4','8','12','>16'];
+  ABAQUE_BINS.forEach((bin,b)=>{
+    const cx=(xL(b)+xR(b))/2;
+    let lbl = b===0?'≤−16':b===9?'>16':`${bin[0]}`;
+    svg+=`<text x="${cx.toFixed(1)}" y="${(pad.t+cH+16).toFixed(1)}" text-anchor="middle" font-size="9" fill="#6B7178" font-family="Arial">${lbl}</text>`;
+  });
+  svg+=`<text x="${pad.l+cW/2}" y="${pad.t+cH+34}" text-anchor="middle" font-size="11" fill="#8A9099" font-family="Arial">Pente (%)</text>`;
+
+  // Stepped horizontal bars per bin, coloured
+  paces.forEach((p,b)=>{
+    const y=yS(p);
+    const isPersonal = prof.abaque[b]!==null;
+    svg+=`<line x1="${xL(b).toFixed(1)}" y1="${y.toFixed(1)}" x2="${xR(b).toFixed(1)}" y2="${y.toFixed(1)}" stroke="${BIN_COLORS[b]}" stroke-width="3.5" opacity="${isPersonal?1:0.4}"/>`;
+    // vertical connector to next bin
+    if(b<paces.length-1){
+      const y2=yS(paces[b+1]);
+      svg+=`<line x1="${xR(b).toFixed(1)}" y1="${y.toFixed(1)}" x2="${xR(b).toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${BIN_COLORS[b]}" stroke-width="1.5" opacity="0.4"/>`;
+    }
+    // dot if personal data
+    if(isPersonal){
+      const cx=(xL(b)+xR(b))/2;
+      svg+=`<circle cx="${cx.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="${BIN_COLORS[b]}"/>`;
+    }
+  });
+
+  svg+=`</svg>`;
+  document.getElementById('profAbaqueChart').innerHTML = svg;
+
+  // Note about coverage
+  const covered = prof.abaque.filter(v=>v!==null).length;
+  document.getElementById('profAbaqueNote').textContent =
+    `${covered}/${ABAQUE_BINS.length} tranches mesurées` + (covered<ABAQUE_BINS.length?' · reste estimé (transparent)':'');
+}
+
+
 let cheatScenario = 0;   // -1 good, 0 solid, 1 rough
 let cheatSplit = 'all';  // 'all' or 'refuel'
 
@@ -3873,6 +5192,7 @@ function detectColCrete(fromKm, toKm){
 
 function loadSegPanel(segIdx){
   if(!gpx) return;
+  currentSegPanelIdx = segIdx; // single source of truth — any caller selects this segment
   const segs = getSegments();
   // segs[0] = {label:'Entire Race',...}, segs[1..n] = real segments
   const seg = segs[segIdx + 1];
@@ -4154,7 +5474,11 @@ function setTechniUI(level){
 function navigateSegPanel(dir){
   const segs = getSegments();
   const newIdx = Math.max(0, Math.min(segs.length-2, currentSegPanelIdx + dir));
+  currentSegPanelIdx = newIdx;       // keep panel index in sync (fixes coeff writing to wrong segment)
+  currentSegIdx = newIdx;            // keep elevation highlight in sync too
   loadSegPanel(newIdx);
+  updateSegNav();
+  if(gpx && elevOpen) drawElevation();
 }
 
 function toggleSubsec(id){
@@ -4284,6 +5608,48 @@ refreshLibrary();
   <!-- Column picker floating menu — outside overflow containers -->
   <div class="col-picker-menu" id="colPickerMenu">
     <div class="col-picker-title">Colonnes affichées</div>
+  </div>
+
+  <!-- ══════════ WAYPOINT CONFIG MODAL ══════════ -->
+  <div class="wpcfg-overlay" id="wpcfgOverlay">
+    <div class="wpcfg-modal">
+      <div class="wpcfg-header">
+        <div>
+          <div class="wpcfg-title">Configurer les waypoints</div>
+          <div class="wpcfg-subtitle" id="wpcfgSubtitle">Ajuste le terrain et les positions — le graphique et le tableau se mettent à jour</div>
+        </div>
+        <button class="wpcfg-done" onclick="closeWpConfig()">Terminé →</button>
+      </div>
+      <div class="wpcfg-body">
+        <div class="wpcfg-left" id="wpcfgLeft"></div>
+        <div class="wpcfg-right">
+          <div class="wpcfg-chart" id="wpcfgChart"></div>
+          <div class="wpcfg-table" id="wpcfgTable"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ MODE CHOICE MODAL ══════════ -->
+  <div class="mode-overlay" id="modeOverlay">
+    <div class="mode-modal">
+      <div class="mode-title">Comment planifier cette course ?</div>
+      <div class="mode-subtitle" id="modeSubtitle">—</div>
+      <button class="mode-option mode-option-featured" onclick="chooseRaceMode('quick')">
+        <span class="mode-opt-icon">⚡</span>
+        <span class="mode-opt-text">
+          <span class="mode-opt-name">Mode rapide</span>
+          <span class="mode-opt-desc">Tu saisis tes temps cibles par segment et tes arrêts. Idéal si tu as déjà ton plan.</span>
+        </span>
+      </button>
+      <button class="mode-option" onclick="chooseRaceMode('analysis')">
+        <span class="mode-opt-icon">📊</span>
+        <span class="mode-opt-text">
+          <span class="mode-opt-name">Mode analyse</span>
+          <span class="mode-opt-desc">L'app calcule ton allure selon le terrain, avec coefficients et profil perso.</span>
+        </span>
+      </button>
+    </div>
   </div>
 
   <!-- ══════════ CHEATSHEET EXPORT MODAL ══════════ -->

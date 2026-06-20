@@ -9,6 +9,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
+  color-scheme:dark;
   --bg:#0D1117;--panel:#161B22;--panel2:#1C2128;
   --border:#30363D;--border2:#21262D;
   --text:#E6EDF3;--muted:#8B949E;--muted2:#6E7681;
@@ -36,13 +37,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 .nav-link:hover{color:var(--text);background:rgba(255,255,255,0.04);}
 .nav-link.active{color:var(--text);background:rgba(255,107,53,0.1);}
 .nav-link.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--orange);border-radius:0 2px 2px 0;}
-.nav-link-icon{font-size:16px;width:20px;text-align:center;}
+.nav-link-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;}
+.nav-link-icon svg{width:18px;height:18px;}
+.nav-link:hover .nav-link-icon,.nav-link.active .nav-link-icon{color:var(--orange);}
+.nav-sep{height:1px;margin:10px 18px;background:var(--border2);}
 .nav-link-label{flex:1;}
 .nav-badge{font-size:10px;padding:1px 7px;border-radius:8px;background:rgba(255,107,53,0.2);color:var(--orange);font-weight:600;}
 .nav-bottom{padding:12px 0;border-top:1px solid var(--border2);}
 
 /* ══ HOME MAIN ══ */
-.home-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.home-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
 .home-topbar{display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .home-tabs{display:flex;}
 .home-tab{padding:6px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;background:none;border:none;font-family:inherit;border-bottom:2px solid transparent;transition:all 0.15s;}
@@ -68,7 +72,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 .import-sep{height:1px;background:var(--border2);margin:2px 0;}
 
 /* Content */
-.home-content{flex:1;overflow-y:auto;padding:24px;}
+.home-content{flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;padding:24px;}
 .home-content::-webkit-scrollbar{width:6px;}
 .home-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 .tab-panel{display:none;}
@@ -82,7 +86,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 .empty-sub{font-size:12px;line-height:1.7;max-width:300px;}
 
 /* Library cards */
-.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:16px;}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:16px;}
 .lib-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:border-color 0.15s,transform 0.12s;position:relative;}
 .lib-card:hover{border-color:rgba(255,107,53,0.5);transform:translateY(-1px);}
 
@@ -543,6 +547,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 }
 
 /* Icon button */
+.mctrl-sep{height:1px;width:24px;margin:2px auto;background:rgba(255,255,255,0.15);}
 .mctrl-icon-btn{
   width:36px;height:36px;
   background:rgba(12,18,26,0.82);
@@ -855,6 +860,232 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 .profile-toggle-label input{accent-color:var(--orange);width:15px;height:15px;cursor:pointer;}
 .profile-toggle-hint{font-size:11px;color:var(--muted2);padding-left:23px;}
 
+/* Nutrition strategy (in-app tab) */
+.nutri-view{padding:14px 16px;overflow-y:auto;height:100%;}
+.nutri-strat-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.nutri-kpi{background:rgba(255,255,255,0.03);border-radius:9px;padding:11px 13px;}
+.nutri-kpi-l{font-size:10.5px;color:var(--muted);margin-bottom:3px;}
+.nutri-kpi-v{font-size:19px;font-weight:600;color:var(--text);}
+.nutri-kpi-s{font-size:10px;color:var(--muted2);margin-top:2px;}
+.nutri-strat-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;}
+.nutri-plan-table{background:rgba(255,255,255,0.02);border-radius:9px;overflow:hidden;}
+.nutri-plan-head{display:grid;grid-template-columns:2fr 1.1fr 0.9fr 0.5fr;font-size:10px;color:var(--muted2);padding:8px 12px;text-transform:uppercase;letter-spacing:0.3px;}
+.nutri-plan-row{display:grid;grid-template-columns:2fr 1.1fr 0.9fr 0.5fr;align-items:center;font-size:12.5px;color:var(--text);padding:8px 12px;border-top:1px solid var(--border2);}
+.nutri-plan-name{display:flex;align-items:center;gap:8px;}
+.nutri-plan-thumb{width:24px;height:24px;border-radius:5px;object-fit:cover;}
+.nutri-plan-qty{display:flex;align-items:center;gap:8px;}
+.nutri-plan-qty button{width:22px;height:22px;border-radius:5px;background:rgba(255,255,255,0.07);border:none;color:var(--text);cursor:pointer;font-size:14px;line-height:1;}
+.nutri-plan-qty button:hover{background:rgba(255,255,255,0.14);}
+.nutri-plan-qty span{min-width:38px;text-align:center;}
+.nutri-plan-del{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:13px;}
+.nutri-plan-del:hover{color:var(--red);}
+.nutri-add-prod-btn{margin-top:10px;width:100%;padding:9px;font-size:12px;border-radius:8px;background:none;border:1px dashed rgba(255,255,255,0.15);color:var(--muted);cursor:pointer;font-family:inherit;}
+.nutri-add-prod-btn:hover{border-color:var(--orange);color:var(--orange);}
+.nutri-picker{margin-top:8px;background:#10151d;border:1px solid var(--border2);border-radius:9px;max-height:260px;overflow-y:auto;}
+.nutri-picker-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;border-bottom:1px solid var(--border2);color:var(--text);cursor:pointer;font-family:inherit;font-size:13px;text-align:left;}
+.nutri-picker-item:hover{background:rgba(255,255,255,0.04);}
+.nutri-picker-icon{font-size:18px;width:24px;text-align:center;}
+.nutri-picker-name{flex:1;}
+.nutri-picker-meta{font-size:11px;color:var(--muted2);}
+
+/* ══════════ RIGHT DRAWER ══════════ */
+.drawer-overlay{
+  position:fixed;inset:0;z-index:1080;background:rgba(0,0,0,0.4);
+  display:none;
+}
+.drawer-overlay.open{display:block;}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:min(360px,92vw);z-index:1081;
+  background:#0F141B;border-left:1px solid rgba(255,255,255,0.1);
+  box-shadow:-12px 0 40px rgba(0,0,0,0.4);
+  transform:translateX(100%);transition:transform 0.24s cubic-bezier(0.4,0,0.2,1);
+  display:flex;flex-direction:column;
+}
+.drawer.open{transform:translateX(0);}
+.drawer-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;
+}
+.drawer-tabs{display:flex;gap:4px;}
+.drawer-tab{
+  font-size:12.5px;padding:6px 12px;border-radius:7px;border:none;cursor:pointer;font-family:inherit;
+  background:none;color:var(--muted);
+}
+.drawer-tab.active{background:var(--orange);color:#fff;}
+.drawer-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;}
+.drawer-close:hover{color:var(--text);}
+.drawer-body{flex:1;overflow-y:auto;padding:14px 16px;}
+
+/* Collapsible category groups (used in bases + drawer) */
+.cat-group{margin-bottom:10px;}
+.cat-group-head{
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);
+  font-size:11px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);
+  user-select:none;
+}
+.cat-group-head:hover{background:rgba(255,255,255,0.05);}
+.cat-group-chevron{margin-left:auto;transition:transform 0.18s;font-size:10px;}
+.cat-group.collapsed .cat-group-chevron{transform:rotate(-90deg);}
+.cat-group-icon{font-size:14px;}
+.cat-group-count{font-size:10px;color:var(--muted2);background:rgba(255,255,255,0.06);padding:1px 7px;border-radius:8px;}
+.nutri-filter-wrap{position:static;display:inline-flex;}
+.cat-group-head{position:relative;}
+.nutri-filter-btn{
+  background:none;border:none;color:var(--muted2);cursor:pointer;padding:3px;
+  display:flex;align-items:center;justify-content:center;border-radius:5px;
+}
+.nutri-filter-btn:hover{color:var(--text);background:rgba(255,255,255,0.06);}
+.nutri-filter-btn.active{color:var(--orange);}
+.nutri-filter-menu{
+  position:absolute;top:calc(100% + 6px);right:10px;left:auto;z-index:50;
+  background:#161b22;border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;width:max-content;max-width:min(280px,calc(100vw - 40px));
+  box-shadow:0 12px 32px rgba(0,0,0,0.5);cursor:default;
+}
+.nutri-filter-label{font-size:9.5px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted2);margin:6px 0 5px;}
+.nutri-filter-label:first-child{margin-top:0;}
+.nutri-filter-opts{display:flex;flex-wrap:wrap;gap:5px;}
+.nutri-filter-chip{
+  font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;font-family:inherit;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border2);color:var(--muted);
+}
+.nutri-filter-chip:hover{background:rgba(255,255,255,0.09);color:var(--text);}
+.nutri-filter-chip.active{background:var(--orange);border-color:var(--orange);color:#fff;}
+.cat-group-body{padding:8px 0 2px;min-width:0;}
+.cat-group-body .nutri-grid,.cat-group-body .equip-grid{min-width:0;}
+.cat-group.collapsed .cat-group-body{display:none;}
+
+/* Equipment cards in base (grid like nutrition) */
+.equip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(160px,100%),1fr));gap:10px;}
+.equip-card{
+  background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:10px;
+  overflow:hidden;display:flex;flex-direction:column;
+}
+.equip-card-photo{height:90px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.equip-card-photo img{width:100%;height:100%;object-fit:cover;}
+.equip-card-photo .ph{font-size:28px;opacity:0.3;}
+.equip-card-body{padding:9px 11px;flex:1;}
+.equip-card-name{font-size:12.5px;font-weight:500;color:var(--text);line-height:1.3;}
+.equip-card-foot{display:flex;gap:5px;padding:7px 11px;border-top:1px solid var(--border2);}
+.equip-card-btn{flex:1;font-size:10.5px;padding:4px 0;border-radius:5px;background:rgba(255,255,255,0.05);color:var(--muted);border:none;cursor:pointer;font-family:inherit;}
+.equip-card-btn:hover{background:rgba(255,255,255,0.1);color:var(--text);}
+.equip-card-btn.del:hover{background:rgba(248,81,73,0.15);color:var(--red);}
+
+/* Drawer checklist (equipment in a race) */
+.drawer-hint{font-size:11px;color:var(--muted);margin-bottom:12px;}
+.check-item{
+  display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;
+  background:rgba(255,255,255,0.03);margin-bottom:5px;cursor:pointer;
+}
+.check-item input[type=checkbox]{accent-color:var(--orange);width:15px;height:15px;flex-shrink:0;cursor:pointer;}
+.check-item-thumb{width:26px;height:26px;border-radius:5px;object-fit:cover;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.check-item-name{flex:1;font-size:12.5px;color:var(--text);min-width:0;}
+.check-item-req{font-size:11px;cursor:pointer;opacity:0.5;}
+.check-item-req.on{opacity:1;}
+.drawer-summary{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;border-radius:8px;margin:12px 0;
+  background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.2);
+  font-size:12px;color:var(--text);
+}
+.drawer-summary b{color:var(--orange);font-weight:600;}
+.drawer-add-btn{width:100%;padding:9px;font-size:12px;border-radius:8px;background:none;border:1px dashed rgba(255,255,255,0.15);color:var(--muted);cursor:pointer;font-family:inherit;}
+.drawer-add-btn:hover{border-color:var(--orange);color:var(--orange);}
+
+/* ══════════ NUTRITION BASE ══════════ */
+.nutri-add-btn{
+  background:var(--orange);color:#fff;border:none;border-radius:9px;
+  padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
+}
+.nutri-add-btn:hover{filter:brightness(1.08);}
+.nutri-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(180px,100%),1fr));gap:12px;}
+.nutri-card{
+  background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:12px;
+  overflow:hidden;display:flex;flex-direction:column;
+}
+.nutri-card-photo{
+  height:120px;background:rgba(255,255,255,0.04);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.nutri-card-photo img{width:100%;height:100%;object-fit:cover;}
+.nutri-card-photo .ph{font-size:34px;opacity:0.3;}
+.nutri-card-body{padding:11px 13px;flex:1;}
+.nutri-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:8px;}
+.nutri-card-name{font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3;word-break:break-word;}
+.nutri-card-brand{font-size:11px;color:var(--muted2);margin-top:1px;}
+.nutri-card-photo{cursor:pointer;}
+.nutri-card-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
+.nutri-card-badges:empty{display:none;}
+.nutri-gamme-sucre{background:rgba(244,114,182,0.15);color:#F472B6;}
+.nutri-gamme-sale{background:rgba(96,165,250,0.15);color:#60A5FA;}
+.nutri-gamme-pre{background:rgba(125,211,150,0.15);color:#7DD396;}
+.nutri-gamme-effort{background:rgba(255,107,53,0.15);color:#FF6B35;}
+.nutri-gamme-recup{background:rgba(192,132,252,0.15);color:#C084FC;}
+.nutri-expand-btn{
+  width:100%;font-size:11px;padding:5px 0;border-radius:6px;margin-bottom:6px;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--muted);
+  cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;
+}
+.nutri-expand-btn:hover{background:rgba(255,255,255,0.07);color:var(--text);}
+.nutri-expand-chev{font-size:8px;}
+.nutri-card-type{font-size:10px;padding:2px 7px;border-radius:5px;white-space:nowrap;flex-shrink:0;}
+.nutri-type-gel{background:rgba(88,166,255,0.15);color:#58A6FF;}
+.nutri-type-barre{background:rgba(227,179,65,0.15);color:#E3B341;}
+.nutri-type-compote{background:rgba(192,132,252,0.15);color:#C084FC;}
+.nutri-type-boisson{background:rgba(63,185,80,0.15);color:#3FB950;}
+.nutri-type-autre{background:rgba(139,148,158,0.15);color:#8B949E;}
+.nutri-card-vals{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11px;}
+.nutri-card-notes{font-size:11px;color:var(--muted);font-style:italic;margin-top:8px;padding-top:8px;border-top:1px solid var(--border2);line-height:1.4;}
+.nutri-val{display:flex;justify-content:space-between;color:var(--muted);}
+.nutri-val b{color:var(--text);font-weight:500;}
+.nutri-card-foot{display:flex;gap:6px;padding:8px 13px;border-top:1px solid var(--border2);}
+.nutri-card-btn{flex:1;font-size:11px;padding:5px 0;border-radius:6px;background:rgba(255,255,255,0.05);color:var(--muted);border:none;cursor:pointer;font-family:inherit;}
+.nutri-card-btn:hover{background:rgba(255,255,255,0.1);color:var(--text);}
+.nutri-card-btn.del:hover{background:rgba(248,81,73,0.15);color:var(--red);}
+
+/* Product modal */
+.prodmodal-overlay{
+  position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.prodmodal-overlay.open{display:flex;}
+.prodmodal{
+  background:#0F141B;border:1px solid rgba(255,255,255,0.1);border-radius:16px;
+  width:min(540px,96vw);padding:20px;box-shadow:0 24px 64px rgba(0,0,0,0.6);
+}
+.prodmodal-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px;}
+.prodmodal-body{display:flex;gap:16px;}
+.prodmodal-photo-col{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;}
+.prodmodal-photo{
+  width:104px;height:104px;border-radius:10px;border:1.5px dashed var(--border2);
+  background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-align:center;color:var(--muted2);font-size:22px;overflow:hidden;
+}
+.prodmodal-photo:hover{border-color:var(--orange);}
+.prodmodal-photo img{width:100%;height:100%;object-fit:cover;}
+.prodmodal-photo-clear{font-size:11px;background:none;border:none;color:var(--muted2);cursor:pointer;}
+.prodmodal-photo-clear:hover{color:var(--red);}
+.prodmodal-fields{flex:1;display:flex;flex-direction:column;gap:9px;min-width:0;}
+.prodmodal-field{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);}
+.prodmodal-field input,.prodmodal-field select,.prodmodal-field textarea{
+  background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:7px;
+  padding:7px 9px;color:var(--text);font-size:13px;font-family:inherit;
+}
+.prodmodal-field textarea{resize:vertical;min-height:42px;}
+.prodmodal-field select{
+  -webkit-appearance:none;-moz-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%238B949E' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 9px center;padding-right:28px;cursor:pointer;
+}
+.prodmodal-field select option{background:#161b22;color:var(--text);}
+.prodmodal-field input:focus,.prodmodal-field select:focus,.prodmodal-field textarea:focus{outline:none;border-color:var(--orange);}
+.prodmodal-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.prodmodal-hint{font-size:11px;color:var(--muted2);}
+.prodmodal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+.prodmodal-cancel{background:none;border:1px solid var(--border2);color:var(--muted);border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit;}
+.prodmodal-save{background:var(--orange);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+
 /* ══════════ WAYPOINT CONFIG MODAL ══════════ */
 .wpcfg-overlay{
   position:fixed;inset:0;z-index:1090;
@@ -899,6 +1130,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 .wpcfg-wp-name:focus{outline:none;border-color:var(--orange);}
 .wpcfg-wp-name[readonly]{background:none;border-color:transparent;padding-left:0;}
 .wpcfg-wp-km{font-size:11px;font-weight:500;flex-shrink:0;}
+.wpcfg-type{display:flex;gap:4px;margin-bottom:7px;}
+.wpcfg-type-btn{
+  flex:1;font-size:10.5px;padding:5px 0;border-radius:6px;
+  background:rgba(255,255,255,0.05);color:var(--muted2);border:none;cursor:pointer;font-family:inherit;
+  white-space:nowrap;
+}
+.wpcfg-type-btn.active{background:var(--orange);color:#fff;}
 .wpcfg-techni{display:flex;gap:4px;margin-bottom:7px;}
 .wpcfg-techni-btn{
   flex:1;font-size:10.5px;padding:5px 0;border-radius:6px;
@@ -1210,6 +1448,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 .modal-field{margin-bottom:12px;}
 .modal-field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;}
 .modal-field input,.modal-field select,.modal-field textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;font-family:inherit;}
+.modal-field select{
+  -webkit-appearance:none;-moz-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%238B949E' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 10px center;padding-right:30px;cursor:pointer;
+}
+.modal-field select option{background:#161b22;color:var(--text);}
 .modal-field textarea{resize:vertical;min-height:60px;}
 .modal-field input:focus,.modal-field select:focus{outline:none;border-color:var(--orange);}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
@@ -1281,24 +1525,41 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
     </div>
     <div class="nav-links">
       <button class="nav-link active" onclick="setHomeTab('races',this)">
-        <span class="nav-link-icon">🏁</span>
+        <span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M4 2v14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 3h8l-1.5 2.5L12 8H4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/></svg></span>
         <span class="nav-link-label">Mes courses</span>
         <span class="nav-badge" id="racesCount">0</span>
       </button>
       <button class="nav-link" onclick="setHomeTab('training',this)">
-        <span class="nav-link-icon">🏃</span>
+        <span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="11" cy="4" r="1.8" stroke="currentColor" stroke-width="1.4"/><path d="M5 16l2.5-4 2-1.5L8 7 5 8.5M9.5 10.5L12 12l2 3M9.5 10.5L12 8h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <span class="nav-link-label">Entraînements</span>
         <span class="nav-badge" id="trainingCount">0</span>
       </button>
       <button class="nav-link" onclick="setHomeTab('routes',this)">
-        <span class="nav-link-icon">🗺️</span>
+        <span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M2 5l5-2 4 2 5-2v10l-5 2-4-2-5 2V5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 3v10M11 5v10" stroke="currentColor" stroke-width="1.2" stroke-dasharray="1.5,1.5"/></svg></span>
         <span class="nav-link-label">Routes GPX</span>
         <span class="nav-badge" id="routesCount">0</span>
       </button>
+
+      <div class="nav-sep"></div>
+
+      <button class="nav-link" onclick="openProfilePage()">
+        <span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M3 15V8M7 15V4M11 15V9M15 15V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        <span class="nav-link-label">Mon profil</span>
+      </button>
+      <button class="nav-link" onclick="openNutritionPage()">
+        <span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2.5C9 2.5 5 7 5 11C5 13.2 6.8 15 9 15C11.2 15 13 13.2 13 11C13 7 9 2.5 9 2.5Z" stroke="currentColor" stroke-width="1.4" fill="currentColor" fill-opacity="0.12"/></svg></span>
+        <span class="nav-link-label">Ma base nutrition</span>
+      </button>
+      <button class="nav-link" onclick="openEquipmentPage()">
+        <span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M4.5 6h9l1 9h-11l1-9z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="currentColor" fill-opacity="0.1"/><path d="M6.5 6V4.5C6.5 3.7 7.2 3 8 3h2c0.8 0 1.5 0.7 1.5 1.5V6" stroke="currentColor" stroke-width="1.4"/></svg></span>
+        <span class="nav-link-label">Ma base équipement</span>
+      </button>
     </div>
     <div class="nav-bottom">
-      <button class="nav-link" onclick="openProfilePage()"><span class="nav-link-icon">📊</span><span class="nav-link-label">Mon profil</span></button>
-      <button class="nav-link"><span class="nav-link-icon">⚙️</span><span class="nav-link-label">Paramètres</span></button>
+      <button class="nav-link">
+        <span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.7 3.7l1.4 1.4M12.9 12.9l1.4 1.4M14.3 3.7l-1.4 1.4M5.1 12.9l-1.4 1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+        <span class="nav-link-label">Paramètres</span>
+      </button>
     </div>
   </nav>
 
@@ -1380,12 +1641,13 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
     </div>
     <div class="nav-links">
       <button class="nav-link" onclick="goHome()">
-        <span class="nav-link-icon">🏁</span>
+        <span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M4 2v14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 3h8l-1.5 2.5L12 8H4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/></svg></span>
         <span class="nav-link-label">Mes courses</span>
       </button>
-    </div>
-    <div class="nav-bottom">
-      <button class="nav-link active"><span class="nav-link-icon">📊</span><span class="nav-link-label">Mon profil</span></button>
+    <div class="nav-sep"></div>
+      <button class="nav-link active"><span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M3 15V8M7 15V4M11 15V9M15 15V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-link-label">Mon profil</span></button>
+      <button class="nav-link" onclick="openNutritionPage()"><span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2.5C9 2.5 5 7 5 11C5 13.2 6.8 15 9 15C11.2 15 13 13.2 13 11C13 7 9 2.5 9 2.5Z" stroke="currentColor" stroke-width="1.4" fill="currentColor" fill-opacity="0.12"/></svg></span><span class="nav-link-label">Ma base nutrition</span></button>
+      <button class="nav-link" onclick="openEquipmentPage()"><span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M4.5 6h9l1 9h-11l1-9z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="currentColor" fill-opacity="0.1"/><path d="M6.5 6V4.5C6.5 3.7 7.2 3 8 3h2c0.8 0 1.5 0.7 1.5 1.5V6" stroke="currentColor" stroke-width="1.4"/></svg></span><span class="nav-link-label">Ma base équipement</span></button>
     </div>
   </nav>
 
@@ -1395,8 +1657,8 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
         <button class="home-tab active">Mon profil coureur</button>
       </div>
     </div>
-    <div class="home-content" style="overflow-y:auto;">
-      <div style="max-width:920px;">
+    <div class="home-content" style="overflow-y:auto;overflow-x:hidden;min-width:0;">
+      <div style="max-width:920px;width:100%;">
         <p style="font-size:13px;color:var(--muted);margin:0 0 20px;">
           Importe tes activités chronométrées (Strava, Garmin) pour calibrer un modèle d'allure personnalisé : ton allure de plat, ta réponse à la pente, ta résistance à la fatigue.
         </p>
@@ -1457,6 +1719,93 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
         <div id="profResetWrap" style="display:none;margin-top:16px;">
           <button class="prof-reset-btn" onclick="resetProfile()">Réinitialiser mon profil</button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     NUTRITION BASE SCREEN
+══════════════════════════════════ -->
+<div class="screen" id="nutritionScreen">
+  <nav class="home-nav">
+    <div class="home-nav-top">
+      <div class="nav-avatar">AP</div>
+      <div class="nav-username">Arnaud</div>
+      <div class="nav-subtitle">Trail Runner</div>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link" onclick="goHome()">
+        <span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M4 2v14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 3h8l-1.5 2.5L12 8H4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/></svg></span><span class="nav-link-label">Mes courses</span>
+      </button>
+    <div class="nav-sep"></div>
+      <button class="nav-link" onclick="openProfilePage()"><span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M3 15V8M7 15V4M11 15V9M15 15V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-link-label">Mon profil</span></button>
+      <button class="nav-link active"><span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2.5C9 2.5 5 7 5 11C5 13.2 6.8 15 9 15C11.2 15 13 13.2 13 11C13 7 9 2.5 9 2.5Z" stroke="currentColor" stroke-width="1.4" fill="currentColor" fill-opacity="0.12"/></svg></span><span class="nav-link-label">Ma base nutrition</span></button>
+      <button class="nav-link" onclick="openEquipmentPage()"><span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M4.5 6h9l1 9h-11l1-9z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="currentColor" fill-opacity="0.1"/><path d="M6.5 6V4.5C6.5 3.7 7.2 3 8 3h2c0.8 0 1.5 0.7 1.5 1.5V6" stroke="currentColor" stroke-width="1.4"/></svg></span><span class="nav-link-label">Ma base équipement</span></button>
+    </div>
+  </nav>
+
+  <div class="home-main">
+    <div class="home-topbar">
+      <div class="home-tabs"><button class="home-tab active">Ma base nutrition</button></div>
+    </div>
+    <div class="home-content" style="overflow-y:auto;overflow-x:hidden;min-width:0;">
+      <div style="max-width:980px;width:100%;">
+        <p style="font-size:13px;color:var(--muted);margin:0 0 18px;">
+          Ajoute tes produits (gels, barres, compotes, boissons) avec leurs valeurs nutritionnelles. Tu pourras ensuite les piocher pour bâtir ta stratégie nutrition sur chaque course.
+        </p>
+
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+          <button class="nutri-add-btn" onclick="openProductModal()">+ Ajouter un produit</button>
+        </div>
+
+        <div id="nutriEmpty" style="display:none;text-align:center;padding:48px 20px;color:var(--muted2);">
+          <div style="font-size:40px;margin-bottom:10px;opacity:0.5;">🍫</div>
+          <div style="font-size:14px;">Aucun produit pour l'instant</div>
+          <div style="font-size:12px;margin-top:4px;">Ajoute ton premier gel, barre ou boisson.</div>
+        </div>
+
+        <div id="nutriGrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     EQUIPMENT BASE SCREEN
+══════════════════════════════════ -->
+<div class="screen" id="equipmentScreen">
+  <nav class="home-nav">
+    <div class="home-nav-top">
+      <div class="nav-avatar">AP</div>
+      <div class="nav-username">Arnaud</div>
+      <div class="nav-subtitle">Trail Runner</div>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link" onclick="goHome()"><span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M4 2v14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 3h8l-1.5 2.5L12 8H4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/></svg></span><span class="nav-link-label">Mes courses</span></button>
+    <div class="nav-sep"></div>
+      <button class="nav-link" onclick="openProfilePage()"><span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M3 15V8M7 15V4M11 15V9M15 15V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-link-label">Mon profil</span></button>
+      <button class="nav-link" onclick="openNutritionPage()"><span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2.5C9 2.5 5 7 5 11C5 13.2 6.8 15 9 15C11.2 15 13 13.2 13 11C13 7 9 2.5 9 2.5Z" stroke="currentColor" stroke-width="1.4" fill="currentColor" fill-opacity="0.12"/></svg></span><span class="nav-link-label">Ma base nutrition</span></button>
+      <button class="nav-link active"><span class="nav-link-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M4.5 6h9l1 9h-11l1-9z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="currentColor" fill-opacity="0.1"/><path d="M6.5 6V4.5C6.5 3.7 7.2 3 8 3h2c0.8 0 1.5 0.7 1.5 1.5V6" stroke="currentColor" stroke-width="1.4"/></svg></span><span class="nav-link-label">Ma base équipement</span></button>
+    </div>
+  </nav>
+  <div class="home-main">
+    <div class="home-topbar">
+      <div class="home-tabs"><button class="home-tab active">Ma base équipement</button></div>
+    </div>
+    <div class="home-content" style="overflow-y:auto;overflow-x:hidden;min-width:0;">
+      <div style="max-width:980px;width:100%;">
+        <p style="font-size:13px;color:var(--muted);margin:0 0 18px;">
+          Ajoute ton matériel (vêtements, sécurité, électronique...). Tu pourras ensuite cocher ce que tu emportes sur chaque course et marquer les éléments obligatoires.
+        </p>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+          <button class="nutri-add-btn" onclick="openEquipModal()">+ Ajouter un équipement</button>
+        </div>
+        <div id="equipEmpty" style="display:none;text-align:center;padding:48px 20px;color:var(--muted2);">
+          <div style="font-size:40px;margin-bottom:10px;opacity:0.5;">🎒</div>
+          <div style="font-size:14px;">Aucun équipement pour l'instant</div>
+        </div>
+        <div id="equipCats"></div>
       </div>
     </div>
   </div>
@@ -1862,6 +2211,24 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
             </div>
           </div>
 
+          <!-- Separator -->
+          <div class="mctrl-sep"></div>
+
+          <!-- Nutrition -->
+          <button class="mctrl-icon-btn" onclick="openDrawer('nutri')" title="Nutrition">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2.5C10 2.5 6 7.5 6 11.5C6 13.9 7.8 15.5 10 15.5C12.2 15.5 14 13.9 14 11.5C14 7.5 10 2.5 10 2.5Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.15"/></svg>
+          </button>
+
+          <!-- Équipement -->
+          <button class="mctrl-icon-btn" onclick="openDrawer('equip')" title="Équipement">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 6.5h10l1.2 10H3.8L5 6.5Z" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.12" stroke-linejoin="round"/><path d="M7.5 6.5V4.8C7.5 3.8 8.3 3 9.3 3h1.4C11.7 3 12.5 3.8 12.5 4.8V6.5" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+
+          <!-- Export cheatsheet -->
+          <button class="mctrl-icon-btn" onclick="openCheatsheetModal()" title="Exporter le cheatsheet">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2 L10 12 M6 8.5 L10 12.5 L14 8.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 15 L3 17.5 L17 17.5 L17 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+
         </div>
       </div>
 
@@ -1924,10 +2291,6 @@ input[type=range]:disabled::-moz-range-thumb{background:var(--muted2);box-shadow
                 <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="3" height="12" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="5.5" y="1" width="3" height="12" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="10" y="1" width="3" height="12" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
               </button>
             </div>
-            <!-- Export cheatsheet button -->
-            <button class="elev-type-btn" id="btnExportCheat" onclick="openCheatsheetModal()" title="Exporter le cheatsheet" style="width:26px;padding:0;justify-content:center;">
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1 L7 9 M4 6 L7 9 L10 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 11 L2 13 L12 13 L12 11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-            </button>
           </div>
 
         </div>
@@ -2231,6 +2594,13 @@ function renderWpConfig(){
         <input type="number" class="wpcfg-km-inp" min="0.1" max="${(maxKm-0.1).toFixed(1)}" step="0.1" value="${wp.km.toFixed(1)}" onchange="wpcfgSetKm(${realIdx},this.value)">
         <span style="font-size:11px;color:var(--muted2)">km</span>
       </div>`;
+
+      // Type selector (Waypoint / Ravito léger / Ravito complet)
+      html += `<div class="wpcfg-type">
+        <button class="wpcfg-type-btn ${wp.type==='waypoint'?'active':''}" onclick="wpcfgSetType(${realIdx},'waypoint')">📍 Waypoint</button>
+        <button class="wpcfg-type-btn ${wp.type==='refuel-light'?'active':''}" onclick="wpcfgSetType(${realIdx},'refuel-light')">💧 Léger</button>
+        <button class="wpcfg-type-btn ${wp.type==='refuel-full'?'active':''}" onclick="wpcfgSetType(${realIdx},'refuel-full')">🍴 Complet</button>
+      </div>`;
     }
 
     if(pos>0){
@@ -2321,6 +2691,12 @@ function wpcfgSetKm(idx, val){
   waypoints[idx].km = +km.toFixed(1);
   waypoints.sort((a,b)=>a.km-b.km);
   invalidateSegCache?.();
+  wpcfgRefresh();
+}
+function wpcfgSetType(idx, type){
+  waypoints[idx].type = type;
+  // Initialise a stop time for refuel points that don't have one
+  if(isRefuel(type) && waypoints[idx].stopTime == null) waypoints[idx].stopTime = 5;
   wpcfgRefresh();
 }
 function wpcfgSetTechni(segIdx,ti){
@@ -2532,6 +2908,8 @@ function processTrack(points,name,isTraining=false){
   // Reset to analysis mode; the mode modal will let the user choose for fresh imports
   RACE_MODE = 'analysis';
   segTimes = {}; segTimesPrefilled = {};
+  nutriPlan = [];
+  equipPlan = [];
   applyRaceModeUI();
   // Reset race mode for fresh load (popup will set it)
   RACE_MODE = 'analysis';
@@ -4003,6 +4381,662 @@ function hideMapCursor() {
   if (elevCursorMarker && leafletMap) { leafletMap.removeLayer(elevCursorMarker); elevCursorMarker = null; }
 }
 
+// ══════════════════════════════════════════
+// NUTRITION BASE — personal product catalog
+// ══════════════════════════════════════════
+const NUTRITION_KEY = 'trp_nutrition';
+const NUTRI_TYPE_LABELS = {gel:'Gel',barre:'Barre',compote:'Compote',boisson:'Boisson /L',autre:'Autre'};
+// Gamme options depend on product type
+const NUTRI_GAMME_OPTIONS = {
+  barre:   [['sucre','Sucré'],['sale','Salé']],
+  compote: [['sucre','Sucré'],['sale','Salé']],
+  boisson: [['pre','Pré-effort'],['effort','Effort'],['recup','Récupération']],
+  gel:     [],
+  autre:   [],
+};
+const NUTRI_GAMME_LABELS = {
+  sucre:'Sucré', sale:'Salé',
+  pre:'Pré-effort', effort:'Effort', recup:'Récupération',
+};
+// Color class per gamme value (badge styling)
+const NUTRI_GAMME_CLASS = {
+  sucre:'nutri-gamme-sucre', sale:'nutri-gamme-sale',
+  pre:'nutri-gamme-pre', effort:'nutri-gamme-effort', recup:'nutri-gamme-recup',
+};
+
+// Rebuild the gamme <select> options for the current type, preserving a value if still valid
+function refreshGammeOptions(keepVal){
+  const type = document.getElementById('prodType').value;
+  const sel = document.getElementById('prodTaste');
+  const field = document.getElementById('prodGammeField');
+  const opts = NUTRI_GAMME_OPTIONS[type] || [];
+  if(opts.length === 0){
+    sel.innerHTML = '<option value="">—</option>';
+    field.style.display = 'none';
+  } else {
+    field.style.display = '';
+    sel.innerHTML = '<option value="">—</option>' +
+      opts.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  }
+  // restore value if still valid for this type
+  if(keepVal && opts.some(o=>o[0]===keepVal)) sel.value = keepVal;
+  else sel.value = '';
+}
+function onProdTypeChange(){
+  updateProdUnitHint();
+  refreshGammeOptions();
+}
+
+function loadProducts(){
+  try{ return JSON.parse(localStorage.getItem(NUTRITION_KEY)) || []; }
+  catch(e){ return []; }
+}
+function saveProducts(arr){ localStorage.setItem(NUTRITION_KEY, JSON.stringify(arr)); }
+
+function openNutritionPage(){
+  showScreen('nutritionScreen');
+  renderNutritionGrid();
+}
+
+let _nutriCollapsed = {};
+let _nutriExpanded = {};
+let _nutriFilters = {};   // per category: { gamme:'', brand:'' }
+let _nutriFilterOpen = null; // which category's filter menu is open
+function renderNutritionGrid(){
+  const grid = document.getElementById('nutriGrid');
+  const empty = document.getElementById('nutriEmpty');
+  const products = loadProducts();
+  empty.style.display = products.length ? 'none' : 'block';
+
+  const NUTRI_CATS = [
+    {id:'gel',icon:'💧',label:'Gels'},
+    {id:'barre',icon:'🍫',label:'Barres'},
+    {id:'compote',icon:'🥫',label:'Compotes'},
+    {id:'boisson',icon:'🥤',label:'Boissons'},
+    {id:'autre',icon:'📦',label:'Autres'},
+  ];
+  let html = '';
+  NUTRI_CATS.forEach(cat=>{
+    const allInCat = products.map((p,idx)=>({p,idx})).filter(x=>x.p.type===cat.id);
+    if(allInCat.length===0) return;
+    const collapsed = _nutriCollapsed[cat.id];
+    const unit = cat.id==='boisson' ? ' <span style="font-size:9px;color:var(--muted2)">/L</span>' : '';
+
+    // Active filters for this category
+    const filt = _nutriFilters[cat.id] || {gamme:'', brand:''};
+    const inCat = allInCat.filter(({p})=>{
+      if(filt.gamme && p.taste !== filt.gamme) return false;
+      if(filt.brand && (p.brand||'') !== filt.brand) return false;
+      return true;
+    });
+    const hasActiveFilter = !!(filt.gamme || filt.brand);
+
+    // Build filter menu options
+    const gammeOpts = NUTRI_GAMME_OPTIONS[cat.id] || [];
+    const brandsInCat = [...new Set(allInCat.map(x=>x.p.brand).filter(Boolean))].sort();
+    const filterOpen = _nutriFilterOpen === cat.id;
+
+    let filterMenu = '';
+    if(filterOpen){
+      let menuInner = '';
+      if(gammeOpts.length){
+        menuInner += `<div class="nutri-filter-label">Gamme</div><div class="nutri-filter-opts">`;
+        menuInner += `<button class="nutri-filter-chip ${!filt.gamme?'active':''}" onclick="setNutriFilter('${cat.id}','gamme','')">Toutes</button>`;
+        menuInner += gammeOpts.map(([v,l])=>`<button class="nutri-filter-chip ${filt.gamme===v?'active':''}" onclick="setNutriFilter('${cat.id}','gamme','${v}')">${l}</button>`).join('');
+        menuInner += `</div>`;
+      }
+      if(brandsInCat.length){
+        menuInner += `<div class="nutri-filter-label">Marque</div><div class="nutri-filter-opts">`;
+        menuInner += `<button class="nutri-filter-chip ${!filt.brand?'active':''}" onclick="setNutriFilter('${cat.id}','brand','')">Toutes</button>`;
+        menuInner += brandsInCat.map(b=>`<button class="nutri-filter-chip ${filt.brand===b?'active':''}" onclick="setNutriFilter('${cat.id}','brand',${JSON.stringify(b).replace(/"/g,'&quot;')})">${b}</button>`).join('');
+        menuInner += `</div>`;
+      }
+      if(!menuInner) menuInner = `<div style="font-size:11px;color:var(--muted2);padding:4px 2px;">Aucun filtre disponible</div>`;
+      filterMenu = `<div class="nutri-filter-menu" onclick="event.stopPropagation()">${menuInner}</div>`;
+    }
+
+    const countLabel = hasActiveFilter ? `${inCat.length}/${allInCat.length}` : `${allInCat.length}`;
+
+    html += `<div class="cat-group ${collapsed?'collapsed':''}">
+      <div class="cat-group-head" onclick="toggleNutriCat('${cat.id}')">
+        <span class="cat-group-icon">${cat.icon}</span><span>${cat.label}</span>
+        <span class="cat-group-count">${countLabel}</span>
+        <span class="nutri-filter-wrap">
+          <button class="nutri-filter-btn ${hasActiveFilter?'active':''}" onclick="event.stopPropagation();toggleNutriFilter('${cat.id}')" title="Filtrer">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1.5 2.5h11l-4.2 5v4l-2.6 1.3v-5.3L1.5 2.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="${hasActiveFilter?'currentColor':'none'}" fill-opacity="0.2"/></svg>
+          </button>
+          ${filterMenu}
+        </span>
+        <span class="cat-group-chevron">▼</span>
+      </div>
+      <div class="cat-group-body"><div class="nutri-grid">` +
+      inCat.map(({p,idx})=>{
+        const photo = p.photo ? `<img src="${p.photo}" alt="${p.name}">` : `<span class="ph">${cat.icon}</span>`;
+        const tasteBadge = (p.taste && NUTRI_GAMME_LABELS[p.taste])
+          ? `<span class="nutri-card-type ${NUTRI_GAMME_CLASS[p.taste]||''}">${NUTRI_GAMME_LABELS[p.taste]}</span>` : '';
+        const expanded = _nutriExpanded[idx];
+        return `<div class="nutri-card ${expanded?'expanded':''}">
+          <div class="nutri-card-photo" onclick="toggleNutriCard(${idx})">${photo}</div>
+          <div class="nutri-card-body">
+            <div class="nutri-card-head">
+              <div style="min-width:0;">
+                <div class="nutri-card-name">${p.name}</div>
+                ${p.brand?`<div class="nutri-card-brand">${p.brand}</div>`:''}
+              </div>
+            </div>
+            <div class="nutri-card-badges">
+              <span class="nutri-card-type nutri-type-${p.type}">${NUTRI_TYPE_LABELS[p.type]||'Autre'}</span>
+              ${tasteBadge}
+            </div>
+            <button class="nutri-expand-btn" onclick="toggleNutriCard(${idx})">
+              ${expanded?'Masquer':'Détails'} <span class="nutri-expand-chev">${expanded?'▲':'▼'}</span>
+            </button>
+            <div class="nutri-card-vals" style="${expanded?'':'display:none;'}">
+              <span class="nutri-val">Glucides<b>${p.carbs||0} g${unit}</b></span>
+              <span class="nutri-val">Protéines<b>${p.protein||0} g</b></span>
+              <span class="nutri-val">Sodium<b>${p.sodium||0} mg</b></span>
+              <span class="nutri-val">Caféine<b>${p.caffeine||0} mg</b></span>
+              <span class="nutri-val">Calories<b>${p.kcal||0}</b></span>
+            </div>
+            ${expanded && p.notes ? `<div class="nutri-card-notes">${p.notes}</div>` : ''}
+          </div>
+          <div class="nutri-card-foot">
+            <button class="nutri-card-btn" onclick="openProductModal(${idx})">Modifier</button>
+            <button class="nutri-card-btn del" onclick="deleteProduct(${idx})">Supprimer</button>
+          </div>
+        </div>`;
+      }).join('') +
+      `</div>${inCat.length===0?`<div style="font-size:12px;color:var(--muted2);padding:6px 2px;">Aucun produit ne correspond au filtre. <button onclick="clearNutriFilter('${cat.id}')" style="background:none;border:none;color:var(--orange);cursor:pointer;font-size:12px;">Réinitialiser</button></div>`:''}</div></div>`;
+  });
+  grid.innerHTML = html;
+}
+function toggleNutriCat(id){
+  // Don't toggle collapse if a filter menu is open for any category (click was on filter)
+  _nutriFilterOpen = null;
+  _nutriCollapsed[id] = !_nutriCollapsed[id];
+  renderNutritionGrid();
+}
+function toggleNutriCard(idx){ _nutriExpanded[idx] = !_nutriExpanded[idx]; renderNutritionGrid(); }
+function toggleNutriFilter(catId){
+  _nutriFilterOpen = (_nutriFilterOpen === catId) ? null : catId;
+  renderNutritionGrid();
+}
+function setNutriFilter(catId, key, val){
+  if(!_nutriFilters[catId]) _nutriFilters[catId] = {gamme:'', brand:''};
+  _nutriFilters[catId][key] = val;
+  renderNutritionGrid();
+}
+function clearNutriFilter(catId){
+  _nutriFilters[catId] = {gamme:'', brand:''};
+  _nutriFilterOpen = null;
+  renderNutritionGrid();
+}
+// Close filter menu when clicking elsewhere
+document.addEventListener('click', e=>{
+  if(_nutriFilterOpen !== null && !e.target.closest('.nutri-filter-wrap') && !e.target.closest('.cat-group-head')){
+    _nutriFilterOpen = null;
+    if(document.getElementById('nutritionScreen')?.classList.contains('active')) renderNutritionGrid();
+  }
+});
+
+let _editingProductIdx = -1;
+let _pendingPhoto = null;
+
+function openProductModal(idx){
+  _editingProductIdx = (typeof idx === 'number') ? idx : -1;
+  const products = loadProducts();
+  const p = _editingProductIdx >= 0 ? products[_editingProductIdx] : null;
+  document.getElementById('prodModalTitle').textContent = p ? 'Modifier le produit' : 'Ajouter un produit';
+  document.getElementById('prodName').value = p?.name || '';
+  document.getElementById('prodBrand').value = p?.brand || '';
+  document.getElementById('prodType').value = p?.type || 'gel';
+  refreshGammeOptions(p?.taste || '');   // builds gamme options for this type and restores value
+  document.getElementById('prodType').value = p?.type || 'gel';
+  document.getElementById('prodCarbs').value = p?.carbs ?? '';
+  document.getElementById('prodProtein').value = p?.protein ?? '';
+  document.getElementById('prodSodium').value = p?.sodium ?? '';
+  document.getElementById('prodCaffeine').value = p?.caffeine ?? '';
+  document.getElementById('prodKcal').value = p?.kcal ?? '';
+  document.getElementById('prodNotes').value = p?.notes || '';
+  _pendingPhoto = p?.photo || null;
+  updateProductPhotoUI();
+  updateProdUnitHint();
+  document.getElementById('prodModalOverlay').classList.add('open');
+}
+function closeProductModal(){
+  document.getElementById('prodModalOverlay').classList.remove('open');
+  _pendingPhoto = null; _editingProductIdx = -1;
+}
+
+function updateProdUnitHint(){
+  const t = document.getElementById('prodType').value;
+  const hint = document.getElementById('prodUnitHint');
+  if(!hint) return;
+  hint.textContent = t==='boisson'
+    ? 'Valeurs exprimées pour 1 litre de boisson préparée.'
+    : 'Valeurs pour une unité (un gel, une barre, une compote).';
+}
+
+function updateProductPhotoUI(){
+  const img = document.getElementById('prodPhotoImg');
+  const ph = document.getElementById('prodPhotoPlaceholder');
+  const clr = document.getElementById('prodPhotoClear');
+  if(_pendingPhoto){
+    img.src = _pendingPhoto; img.style.display = 'block';
+    ph.style.display = 'none'; clr.style.display = 'block';
+  } else {
+    img.style.display = 'none'; ph.style.display = 'block'; clr.style.display = 'none';
+  }
+}
+function clearProductPhoto(){ _pendingPhoto = null; updateProductPhotoUI(); }
+
+// Compress + resize uploaded photo to a small thumbnail (data URL) for localStorage
+function handleProductPhoto(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const MAX = 240;
+      let {width:w, height:h} = img;
+      if(w > h){ if(w>MAX){ h=h*MAX/w; w=MAX; } }
+      else     { if(h>MAX){ w=w*MAX/h; h=MAX; } }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      _pendingPhoto = canvas.toDataURL('image/jpeg', 0.78);
+      updateProductPhotoUI();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveProduct(){
+  const name = document.getElementById('prodName').value.trim();
+  if(!name){ notify('Donne un nom au produit','err'); return; }
+  const product = {
+    name,
+    brand: document.getElementById('prodBrand').value.trim(),
+    taste: document.getElementById('prodTaste').value,
+    type: document.getElementById('prodType').value,
+    carbs: +document.getElementById('prodCarbs').value || 0,
+    protein: +document.getElementById('prodProtein').value || 0,
+    sodium: +document.getElementById('prodSodium').value || 0,
+    caffeine: +document.getElementById('prodCaffeine').value || 0,
+    kcal: +document.getElementById('prodKcal').value || 0,
+    notes: document.getElementById('prodNotes').value.trim(),
+    photo: _pendingPhoto || null,
+  };
+  const products = loadProducts();
+  if(_editingProductIdx >= 0) products[_editingProductIdx] = product;
+  else products.push(product);
+  try{
+    saveProducts(products);
+  }catch(e){
+    notify('Stockage plein — photo trop lourde ?','err'); return;
+  }
+  closeProductModal();
+  renderNutritionGrid();
+}
+
+function deleteProduct(idx){
+  if(!confirm('Supprimer ce produit ?')) return;
+  const products = loadProducts();
+  products.splice(idx,1);
+  saveProducts(products);
+  renderNutritionGrid();
+}
+
+// ── Nutrition strategy (per race) ──────────────────────────
+// nutriPlan: array of { productName, qty }  (qty = units, or litres for boisson)
+let nutriPlan = [];
+const CARB_TARGET = [60, 90];     // g/h standard
+const SODIUM_TARGET = [300, 700]; // mg/h standard
+
+function renderNutritionStrategy(hostEl){
+  const host = hostEl || document.getElementById('drawerBody') || document.getElementById('nutriStratContent');
+  if(!host) return;
+  if(!gpx){ host.innerHTML = '<div style="padding:20px;color:var(--muted);">Importe une course.</div>'; return; }
+
+  const totalMin = getTotalRaceMin();
+  const hours = Math.max(0.1, totalMin/60);
+  const products = loadProducts();
+
+  // Compute totals from plan
+  let tCarbs=0, tProtein=0, tSodium=0, tCaffeine=0, tKcal=0;
+  nutriPlan.forEach(item=>{
+    const p = products.find(x=>x.name===item.productName);
+    if(!p) return;
+    const q = item.qty||0; // units, or litres for boisson
+    tCarbs    += (p.carbs||0)*q;
+    tProtein  += (p.protein||0)*q;
+    tSodium   += (p.sodium||0)*q;
+    tCaffeine += (p.caffeine||0)*q;
+    tKcal     += (p.kcal||0)*q;
+  });
+
+  const carbsH  = tCarbs/hours;
+  const sodiumH = tSodium/hours;
+  const carbColor  = carbsH>=CARB_TARGET[0] && carbsH<=CARB_TARGET[1] ? 'var(--green)' : carbsH<CARB_TARGET[0] ? 'var(--orange)' : '#E3B341';
+  const sodColor   = sodiumH>=SODIUM_TARGET[0] && sodiumH<=SODIUM_TARGET[1] ? 'var(--green)' : 'var(--orange)';
+
+  let html = `<div class="nutri-strat-kpis">
+    <div class="nutri-kpi"><div class="nutri-kpi-l">Glucides / h</div><div class="nutri-kpi-v" style="color:${carbColor}">${Math.round(carbsH)} g</div><div class="nutri-kpi-s">cible ${CARB_TARGET[0]}-${CARB_TARGET[1]}</div></div>
+    <div class="nutri-kpi"><div class="nutri-kpi-l">Sodium / h</div><div class="nutri-kpi-v" style="color:${sodColor}">${Math.round(sodiumH)} mg</div><div class="nutri-kpi-s">cible ${SODIUM_TARGET[0]}-${SODIUM_TARGET[1]}</div></div>
+    <div class="nutri-kpi"><div class="nutri-kpi-l">Total glucides</div><div class="nutri-kpi-v">${Math.round(tCarbs)} g</div><div class="nutri-kpi-s">${fmtDuration(totalMin)} course</div></div>
+    <div class="nutri-kpi"><div class="nutri-kpi-l">Total calories</div><div class="nutri-kpi-v">${Math.round(tKcal)}</div><div class="nutri-kpi-s">kcal · ${Math.round(tProtein)}g prot · ${Math.round(tCaffeine)}mg caf</div></div>
+  </div>`;
+
+  html += `<div class="nutri-strat-title">Ce que j'emporte</div>`;
+  if(nutriPlan.length === 0){
+    html += `<div style="color:var(--muted2);font-size:12px;padding:8px 0;">Aucun produit ajouté pour cette course.</div>`;
+  } else {
+    html += `<div class="nutri-plan-table">
+      <div class="nutri-plan-head"><span>Produit</span><span>Qté</span><span>Glucides</span><span></span></div>`;
+    nutriPlan.forEach((item,i)=>{
+      const p = products.find(x=>x.name===item.productName);
+      if(!p){ return; }
+      const isDrink = p.type==='boisson';
+      const q = item.qty||0;
+      const carbs = Math.round((p.carbs||0)*q);
+      html += `<div class="nutri-plan-row">
+        <span class="nutri-plan-name">${p.photo?`<img src="${p.photo}" class="nutri-plan-thumb">`:''}${p.name}</span>
+        <span class="nutri-plan-qty">
+          <button onclick="changeNutriQty(${i},-1)">−</button>
+          <span>${isDrink ? q.toFixed(1)+' L' : q}</span>
+          <button onclick="changeNutriQty(${i},1)">+</button>
+        </span>
+        <span>${carbs} g</span>
+        <span style="text-align:right;"><button class="nutri-plan-del" onclick="removeNutriItem(${i})">🗑</button></span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `<button class="nutri-add-prod-btn" onclick="openNutriPicker()">+ Ajouter un produit depuis ma base</button>`;
+
+  // Picker dropdown
+  html += `<div id="nutriPicker" class="nutri-picker" style="display:none;"></div>`;
+
+  host.innerHTML = html;
+}
+
+function openNutriPicker(){
+  const picker = document.getElementById('nutriPicker');
+  const products = loadProducts();
+  if(products.length === 0){
+    picker.innerHTML = `<div style="padding:10px;color:var(--muted2);font-size:12px;">Ta base est vide. Ajoute des produits via "Ma base nutrition" sur l'accueil.</div>`;
+    picker.style.display = 'block';
+    return;
+  }
+  picker.innerHTML = products.map((p,i)=>`
+    <button class="nutri-picker-item" onclick="addNutriItem('${p.name.replace(/'/g,"\\'")}')">
+      ${p.photo?`<img src="${p.photo}" class="nutri-plan-thumb">`:`<span class="nutri-picker-icon">${p.type==='gel'?'💧':p.type==='barre'?'🍫':p.type==='compote'?'🥫':p.type==='boisson'?'🥤':'📦'}</span>`}
+      <span class="nutri-picker-name">${p.brand?`<span style="color:var(--muted2);">${p.brand}</span> `:''}${p.name}</span>
+      <span class="nutri-picker-meta">${p.carbs||0}g${p.type==='boisson'?'/L':''}</span>
+    </button>`).join('');
+  picker.style.display = 'block';
+}
+
+function addNutriItem(name){
+  const existing = nutriPlan.find(x=>x.productName===name);
+  const products = loadProducts();
+  const p = products.find(x=>x.name===name);
+  const defaultQty = p && p.type==='boisson' ? 0.5 : 1;
+  if(existing) existing.qty += defaultQty;
+  else nutriPlan.push({productName:name, qty:defaultQty});
+  document.getElementById('nutriPicker').style.display = 'none';
+  renderNutritionStrategy();
+}
+function changeNutriQty(i, dir){
+  const item = nutriPlan[i];
+  const products = loadProducts();
+  const p = products.find(x=>x.name===item.productName);
+  const step = (p && p.type==='boisson') ? 0.5 : 1;
+  item.qty = Math.max(step, +(item.qty + dir*step).toFixed(1));
+  renderNutritionStrategy();
+}
+function removeNutriItem(i){
+  nutriPlan.splice(i,1);
+  renderNutritionStrategy();
+}
+
+// ══════════════════════════════════════════
+// EQUIPMENT BASE — personal gear catalog
+// ══════════════════════════════════════════
+const EQUIPMENT_KEY = 'trp_equipment';
+const EQUIP_CATS = [
+  {id:'vetements',    label:'Vêtements',    icon:'👕'},
+  {id:'securite',     label:'Sécurité',     icon:'🛟'},
+  {id:'hydratation',  label:'Hydratation',  icon:'💧'},
+  {id:'electronique', label:'Électronique', icon:'🔌'},
+  {id:'autre',        label:'Autre',        icon:'📦'},
+];
+function equipCatMeta(id){ return EQUIP_CATS.find(c=>c.id===id) || EQUIP_CATS[4]; }
+
+function loadEquipment(){
+  try{ return JSON.parse(localStorage.getItem(EQUIPMENT_KEY)) || []; }
+  catch(e){ return []; }
+}
+function saveEquipment(arr){ localStorage.setItem(EQUIPMENT_KEY, JSON.stringify(arr)); }
+
+function openEquipmentPage(){ showScreen('equipmentScreen'); renderEquipmentBase(); }
+
+// Track collapsed categories in the base view
+let _equipCollapsed = {};
+function renderEquipmentBase(){
+  const host = document.getElementById('equipCats');
+  const empty = document.getElementById('equipEmpty');
+  const items = loadEquipment();
+  empty.style.display = items.length ? 'none' : 'block';
+  // Group by category
+  let html = '';
+  EQUIP_CATS.forEach(cat=>{
+    const inCat = items.map((it,idx)=>({it,idx})).filter(x=>x.it.cat===cat.id);
+    if(inCat.length===0) return;
+    const collapsed = _equipCollapsed[cat.id];
+    html += `<div class="cat-group ${collapsed?'collapsed':''}">
+      <div class="cat-group-head" onclick="toggleEquipCat('${cat.id}')">
+        <span class="cat-group-icon">${cat.icon}</span>
+        <span>${cat.label}</span>
+        <span class="cat-group-count">${inCat.length}</span>
+        <span class="cat-group-chevron">▼</span>
+      </div>
+      <div class="cat-group-body">
+        <div class="equip-grid">` +
+        inCat.map(({it,idx})=>{
+          const photo = it.photo ? `<img src="${it.photo}" alt="${it.name}">` : `<span class="ph">${cat.icon}</span>`;
+          return `<div class="equip-card">
+            <div class="equip-card-photo">${photo}</div>
+            <div class="equip-card-body"><div class="equip-card-name">${it.name}</div></div>
+            <div class="equip-card-foot">
+              <button class="equip-card-btn" onclick="openEquipModal(${idx})">Modifier</button>
+              <button class="equip-card-btn del" onclick="deleteEquip(${idx})">Suppr.</button>
+            </div>
+          </div>`;
+        }).join('') +
+        `</div>
+      </div>
+    </div>`;
+  });
+  host.innerHTML = html;
+}
+function toggleEquipCat(id){ _equipCollapsed[id] = !_equipCollapsed[id]; renderEquipmentBase(); }
+
+let _editingEquipIdx = -1;
+let _pendingEquipPhoto = null;
+
+function openEquipModal(idx){
+  _editingEquipIdx = (typeof idx==='number') ? idx : -1;
+  const items = loadEquipment();
+  const it = _editingEquipIdx>=0 ? items[_editingEquipIdx] : null;
+  document.getElementById('equipModalTitle').textContent = it ? 'Modifier l\'équipement' : 'Ajouter un équipement';
+  document.getElementById('equipName').value = it?.name || '';
+  document.getElementById('equipCat').value = it?.cat || 'vetements';
+  _pendingEquipPhoto = it?.photo || null;
+  updateEquipPhotoUI();
+  document.getElementById('equipModalOverlay').classList.add('open');
+}
+function closeEquipModal(){
+  document.getElementById('equipModalOverlay').classList.remove('open');
+  _pendingEquipPhoto = null; _editingEquipIdx = -1;
+}
+function updateEquipPhotoUI(){
+  const img = document.getElementById('equipPhotoImg');
+  const ph = document.getElementById('equipPhotoPlaceholder');
+  const clr = document.getElementById('equipPhotoClear');
+  if(_pendingEquipPhoto){ img.src=_pendingEquipPhoto; img.style.display='block'; ph.style.display='none'; clr.style.display='block'; }
+  else { img.style.display='none'; ph.style.display='block'; clr.style.display='none'; }
+}
+function clearEquipPhoto(){ _pendingEquipPhoto=null; updateEquipPhotoUI(); }
+function handleEquipPhoto(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const MAX=240; let {width:w,height:h}=img;
+      if(w>h){ if(w>MAX){ h=h*MAX/w; w=MAX; } } else { if(h>MAX){ w=w*MAX/h; h=MAX; } }
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      _pendingEquipPhoto = cv.toDataURL('image/jpeg',0.78);
+      updateEquipPhotoUI();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function saveEquip(){
+  const name = document.getElementById('equipName').value.trim();
+  if(!name){ notify('Donne un nom à l\'équipement','err'); return; }
+  const item = { name, cat: document.getElementById('equipCat').value, photo: _pendingEquipPhoto||null };
+  const items = loadEquipment();
+  if(_editingEquipIdx>=0) items[_editingEquipIdx] = item; else items.push(item);
+  try{ saveEquipment(items); }
+  catch(e){ notify('Stockage plein — photo trop lourde ?','err'); return; }
+  closeEquipModal();
+  renderEquipmentBase();
+}
+function deleteEquip(idx){
+  if(!confirm('Supprimer cet équipement ?')) return;
+  const items = loadEquipment();
+  items.splice(idx,1);
+  saveEquipment(items);
+  renderEquipmentBase();
+}
+
+// ══════════════════════════════════════════
+// RIGHT DRAWER — nutrition + equipment per race
+// ══════════════════════════════════════════
+// equipPlan: array of { equipName, checked, required }
+let equipPlan = [];
+let _drawerTab = 'nutri';
+let _drawerCollapsed = {};
+
+function openDrawer(tab){
+  if(!gpx){ notify('Importe une course d\'abord','err'); return; }
+  _drawerTab = tab || 'nutri';
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('rightDrawer').classList.add('open');
+  setDrawerTab(_drawerTab);
+}
+function closeDrawer(){
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('rightDrawer').classList.remove('open');
+}
+function setDrawerTab(tab){
+  _drawerTab = tab;
+  document.getElementById('drawerTabNutri').classList.toggle('active', tab==='nutri');
+  document.getElementById('drawerTabEquip').classList.toggle('active', tab==='equip');
+  if(tab==='nutri') renderNutritionStrategy(document.getElementById('drawerBody'));
+  else renderEquipmentChecklist();
+}
+
+function renderEquipmentChecklist(){
+  const host = document.getElementById('drawerBody');
+  const base = loadEquipment();
+  let html = `<div class="drawer-hint">Coche ce que tu emportes. Le ⚠️ marque les éléments obligatoires pour cette course.</div>`;
+
+  // Group plan items by category
+  const planByCat = {};
+  equipPlan.forEach((item,i)=>{
+    const b = base.find(x=>x.name===item.equipName);
+    const cat = b?.cat || 'autre';
+    (planByCat[cat] = planByCat[cat] || []).push({item, i, base:b});
+  });
+
+  let reqTotal=0, reqChecked=0;
+  equipPlan.forEach(it=>{ if(it.required){ reqTotal++; if(it.checked) reqChecked++; } });
+
+  EQUIP_CATS.forEach(cat=>{
+    const list = planByCat[cat.id];
+    if(!list || list.length===0) return;
+    const collapsed = _drawerCollapsed[cat.id];
+    html += `<div class="cat-group ${collapsed?'collapsed':''}">
+      <div class="cat-group-head" onclick="toggleDrawerCat('${cat.id}')">
+        <span class="cat-group-icon">${cat.icon}</span><span>${cat.label}</span>
+        <span class="cat-group-count">${list.length}</span>
+        <span class="cat-group-chevron">▼</span>
+      </div>
+      <div class="cat-group-body">` +
+      list.map(({item,i,base:b})=>{
+        const thumb = b?.photo ? `<img src="${b.photo}" class="check-item-thumb">` : `<span class="check-item-thumb">${cat.icon}</span>`;
+        return `<label class="check-item">
+          <input type="checkbox" ${item.checked?'checked':''} onchange="toggleEquipCheck(${i})">
+          ${thumb}
+          <span class="check-item-name">${item.equipName}</span>
+          <span class="check-item-req ${item.required?'on':''}" onclick="event.preventDefault();toggleEquipRequired(${i})" title="Obligatoire pour cette course">⚠️</span>
+        </label>`;
+      }).join('') +
+      `</div></div>`;
+  });
+
+  if(equipPlan.length===0){
+    html += `<div style="color:var(--muted2);font-size:12px;padding:8px 0;">Aucun équipement ajouté pour cette course.</div>`;
+  } else if(reqTotal>0){
+    const allReq = reqChecked===reqTotal;
+    html += `<div class="drawer-summary"><span>Obligatoires cochés</span><b style="color:${allReq?'var(--green)':'var(--orange)'}">${reqChecked} / ${reqTotal}</b></div>`;
+  }
+
+  html += `<button class="drawer-add-btn" onclick="openEquipPicker()">+ Ajouter depuis ma base équipement</button>`;
+  html += `<div id="equipPicker" class="nutri-picker" style="display:none;margin-top:8px;"></div>`;
+  host.innerHTML = html;
+}
+function toggleDrawerCat(id){ _drawerCollapsed[id] = !_drawerCollapsed[id]; renderEquipmentChecklist(); }
+function toggleEquipCheck(i){ equipPlan[i].checked = !equipPlan[i].checked; renderEquipmentChecklist(); }
+function toggleEquipRequired(i){ equipPlan[i].required = !equipPlan[i].required; renderEquipmentChecklist(); }
+
+function openEquipPicker(){
+  const picker = document.getElementById('equipPicker');
+  const base = loadEquipment();
+  if(base.length===0){
+    picker.innerHTML = `<div style="padding:10px;color:var(--muted2);font-size:12px;">Ta base est vide. Ajoute du matériel via "Ma base équipement" sur l'accueil.</div>`;
+    picker.style.display='block'; return;
+  }
+  // Exclude already-added
+  const added = new Set(equipPlan.map(x=>x.equipName));
+  const avail = base.filter(b=>!added.has(b.name));
+  if(avail.length===0){
+    picker.innerHTML = `<div style="padding:10px;color:var(--muted2);font-size:12px;">Tout ton matériel est déjà ajouté.</div>`;
+    picker.style.display='block'; return;
+  }
+  picker.innerHTML = avail.map(b=>{
+    const cat = equipCatMeta(b.cat);
+    return `<button class="nutri-picker-item" onclick="addEquipItem('${b.name.replace(/'/g,"\\'")}')">
+      ${b.photo?`<img src="${b.photo}" class="nutri-plan-thumb">`:`<span class="nutri-picker-icon">${cat.icon}</span>`}
+      <span class="nutri-picker-name">${b.name}</span>
+      <span class="nutri-picker-meta">${cat.label}</span>
+    </button>`;
+  }).join('');
+  picker.style.display='block';
+}
+function addEquipItem(name){
+  equipPlan.push({equipName:name, checked:false, required:false});
+  document.getElementById('equipPicker').style.display='none';
+  renderEquipmentChecklist();
+}
+
 const PROFILE_KEY = 'trp_profile';
 const ABAQUE_BINS = [[-100,-16],[-16,-12],[-12,-8],[-8,-4],[-4,0],[0,4],[4,8],[8,12],[12,16],[16,100]];
 const GENERIC_ABAQUE = [1.73,1.39,1.17,0.87,0.93,1.07,1.42,1.85,2.42,3.51];
@@ -5096,7 +6130,6 @@ function switchBottomView(v, btn){
     tableView.style.display = 'none';
     if(legend)   legend.style.display   = '';
     if(segTabs)  segTabs.style.display  = '';
-    // Wait one frame for display:'' to take effect, then draw at correct size
     requestAnimationFrame(()=>{ void chartWrap.offsetHeight; if(gpx) drawElevation(); });
   } else {
     chartWrap.style.display = 'none';
@@ -5605,6 +6638,19 @@ initSections();
 refreshLibrary();
 </script>
 
+  <!-- ══════════ RIGHT DRAWER: Nutrition + Équipement ══════════ -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="if(event.target===this)closeDrawer()"></div>
+  <div class="drawer" id="rightDrawer">
+    <div class="drawer-head">
+      <div class="drawer-tabs">
+        <button class="drawer-tab active" id="drawerTabNutri" onclick="setDrawerTab('nutri')">💧 Nutrition</button>
+        <button class="drawer-tab" id="drawerTabEquip" onclick="setDrawerTab('equip')">🎒 Équipement</button>
+      </div>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+  </div>
+
   <!-- Column picker floating menu — outside overflow containers -->
   <div class="col-picker-menu" id="colPickerMenu">
     <div class="col-picker-title">Colonnes affichées</div>
@@ -5626,6 +6672,88 @@ refreshLibrary();
           <div class="wpcfg-chart" id="wpcfgChart"></div>
           <div class="wpcfg-table" id="wpcfgTable"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ EQUIPMENT EDITOR MODAL ══════════ -->
+  <div class="prodmodal-overlay" id="equipModalOverlay">
+    <div class="prodmodal">
+      <div class="prodmodal-title" id="equipModalTitle">Ajouter un équipement</div>
+      <div class="prodmodal-body">
+        <div class="prodmodal-photo-col">
+          <div class="prodmodal-photo" id="equipPhotoPreview" onclick="document.getElementById('equipPhotoInput').click()">
+            <span id="equipPhotoPlaceholder">📷<br><span style="font-size:10px;">Photo</span></span>
+            <img id="equipPhotoImg" style="display:none;" alt="">
+          </div>
+          <input type="file" id="equipPhotoInput" accept="image/*" style="display:none;" onchange="handleEquipPhoto(this.files[0])">
+          <button class="prodmodal-photo-clear" id="equipPhotoClear" style="display:none;" onclick="clearEquipPhoto()">Retirer</button>
+        </div>
+        <div class="prodmodal-fields">
+          <label class="prodmodal-field"><span>Nom</span>
+            <input type="text" id="equipName" placeholder="ex. Veste imperméable"></label>
+          <label class="prodmodal-field"><span>Catégorie</span>
+            <select id="equipCat">
+              <option value="vetements">Vêtements</option>
+              <option value="securite">Sécurité</option>
+              <option value="hydratation">Hydratation</option>
+              <option value="electronique">Électronique</option>
+              <option value="autre">Autre</option>
+            </select></label>
+        </div>
+      </div>
+      <div class="prodmodal-actions">
+        <button class="prodmodal-cancel" onclick="closeEquipModal()">Annuler</button>
+        <button class="prodmodal-save" onclick="saveEquip()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PRODUCT EDITOR MODAL ══════════ -->
+  <div class="prodmodal-overlay" id="prodModalOverlay">
+    <div class="prodmodal">
+      <div class="prodmodal-title" id="prodModalTitle">Ajouter un produit</div>
+      <div class="prodmodal-body">
+        <div class="prodmodal-photo-col">
+          <div class="prodmodal-photo" id="prodPhotoPreview" onclick="document.getElementById('prodPhotoInput').click()">
+            <span id="prodPhotoPlaceholder">📷<br><span style="font-size:10px;">Photo</span></span>
+            <img id="prodPhotoImg" style="display:none;" alt="">
+          </div>
+          <input type="file" id="prodPhotoInput" accept="image/*" style="display:none;" onchange="handleProductPhoto(this.files[0])">
+          <button class="prodmodal-photo-clear" id="prodPhotoClear" style="display:none;" onclick="clearProductPhoto()">Retirer</button>
+        </div>
+        <div class="prodmodal-fields">
+          <label class="prodmodal-field"><span>Nom</span>
+            <input type="text" id="prodName" placeholder="ex. Gel 100"></label>
+          <label class="prodmodal-field"><span>Marque</span>
+            <input type="text" id="prodBrand" placeholder="ex. Maurten"></label>
+          <div class="prodmodal-grid">
+            <label class="prodmodal-field"><span>Type</span>
+              <select id="prodType" onchange="onProdTypeChange()">
+                <option value="gel">Gel</option>
+                <option value="barre">Barre</option>
+                <option value="compote">Compote</option>
+                <option value="boisson">Boisson (par litre)</option>
+                <option value="autre">Autre</option>
+              </select></label>
+            <label class="prodmodal-field" id="prodGammeField"><span>Gamme</span>
+              <select id="prodTaste"></select></label>
+          </div>
+          <div class="prodmodal-grid">
+            <label class="prodmodal-field"><span>Glucides (g)</span><input type="number" id="prodCarbs" min="0" step="0.1"></label>
+            <label class="prodmodal-field"><span>Protéines (g)</span><input type="number" id="prodProtein" min="0" step="0.1"></label>
+            <label class="prodmodal-field"><span>Sodium (mg)</span><input type="number" id="prodSodium" min="0" step="1"></label>
+            <label class="prodmodal-field"><span>Caféine (mg)</span><input type="number" id="prodCaffeine" min="0" step="1"></label>
+            <label class="prodmodal-field"><span>Calories (kcal)</span><input type="number" id="prodKcal" min="0" step="1"></label>
+          </div>
+          <div class="prodmodal-hint" id="prodUnitHint"></div>
+          <label class="prodmodal-field"><span>Remarques</span>
+            <textarea id="prodNotes" rows="2" placeholder="ex. bien toléré, à éviter quand il fait chaud..."></textarea></label>
+        </div>
+      </div>
+      <div class="prodmodal-actions">
+        <button class="prodmodal-cancel" onclick="closeProductModal()">Annuler</button>
+        <button class="prodmodal-save" onclick="saveProduct()">Enregistrer</button>
       </div>
     </div>
   </div>

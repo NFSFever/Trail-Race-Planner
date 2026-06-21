@@ -2403,6 +2403,7 @@ let segTimes = {};       // quick mode: manual time per segment (minutes)
 let segTimesPrefilled = {}; // tracks which seg times are still model-prefilled (not user-edited)
 let stopMin=10, startTimeVal='07:30';
 let currentFileType='race';
+let currentSessionFile = null; // filename of the currently-open saved session (null = new/unsaved)
 let library={races:[],training:[],routes:[]};
 let pendingImportType=null;
 
@@ -2876,7 +2877,7 @@ function updateQuickTotal(){
 // ══════════════════════════════════════════
 function haversine(a,b,c,d){const R=6371000,r=Math.PI/180,dL=(c-a)*r,dO=(d-b)*r,x=Math.sin(dL/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
 
-function processTrack(points,name,isTraining=false){
+function processTrack(points,name,isTraining=false,savedMetrics=null){
   // Light 3-pt smoothing for display & grade (preserves real terrain shape)
   const sm=points.map((p,i)=>{
     const w=points.slice(Math.max(0,i-1),i+2);
@@ -2891,14 +2892,25 @@ function processTrack(points,name,isTraining=false){
   }
 
   // Compute D+/D- on RAW points with accumulation threshold 1.5m.
-  // Accumulation filters GPS noise without flattening real climbs —
-  // validated against official traces (Verbier 2977m, Mont-Blanc 6256m).
   let elevGain=0, elevLoss=0, acc=0;
   for(let i=1;i<points.length;i++){
     const de=points[i].ele-points[i-1].ele;
     acc+=de;
     if(acc>1.5){ elevGain+=acc; acc=0; }
     else if(acc<-1.5){ elevLoss+=Math.abs(acc); acc=0; }
+  }
+
+  // If exact metrics were saved with the session, use them so reloading a
+  // (decimated) saved track doesn't drift the distance / D+ / D-.
+  if(savedMetrics){
+    if(savedMetrics.distKm  != null){ totalDist = savedMetrics.distKm * 1000;
+      // rescale cumDist proportionally so km positions stay consistent
+      const last = cumDist[cumDist.length-1] || 1;
+      const factor = totalDist / last;
+      for(let i=0;i<cumDist.length;i++) cumDist[i]*=factor;
+    }
+    if(savedMetrics.elevGain != null) elevGain = savedMetrics.elevGain;
+    if(savedMetrics.elevLoss != null) elevLoss = savedMetrics.elevLoss;
   }
   // ── Detect Switzerland (before gpx assignment) ───────────────
   const lats=sm.map(p=>p.lat), lons=sm.map(p=>p.lon);
@@ -2989,6 +3001,7 @@ function processTrack(points,name,isTraining=false){
   // Fresh GPX load → ask the user which planning mode to use
   // (skipped when restoring a saved session, which sets _skipModePopup)
   if(!processTrack._skipModePopup){
+    currentSessionFile = null; // this is a brand-new course, not a saved one
     openModeModal();
   }
   processTrack._skipModePopup = false;
@@ -3605,10 +3618,19 @@ function renderCutoffs(){
 // ══════════════════════════════════════════
 function saveCurrentSession(){
   if(!gpx){notify('Aucun parcours chargé','err');return;}
-  document.getElementById('sessionNameInput').value=gpx.name;
-  document.getElementById('sessionDateInput').value=new Date().toISOString().slice(0,10);
-  document.getElementById('sessionTypeInput').value=currentFileType==='training'?'training':currentFileType==='route'?'route':'race';
-  document.getElementById('sessionNotesInput').value='';
+  // If a saved session is open, pre-fill its details (so re-saving updates it cleanly)
+  let existing = null;
+  if(currentSessionFile){
+    const sessions=JSON.parse(localStorage.getItem('trp_library')||'[]');
+    existing = sessions.find(s=>s.filename===currentSessionFile) || null;
+  }
+  document.getElementById('sessionNameInput').value = existing ? existing.name : gpx.name;
+  document.getElementById('sessionDateInput').value = existing && existing.raceDate ? existing.raceDate : new Date().toISOString().slice(0,10);
+  document.getElementById('sessionTypeInput').value = existing ? existing.sType : (currentFileType==='training'?'training':currentFileType==='route'?'route':'race');
+  document.getElementById('sessionNotesInput').value = existing ? (existing.notes||'') : '';
+  // Update the confirm button label to reflect create vs update
+  const saveBtn = document.querySelector('#saveSessionModal .btn-primary');
+  if(saveBtn) saveBtn.textContent = existing ? 'Mettre à jour' : 'Sauvegarder';
   document.getElementById('saveSessionModal').classList.add('show');
 }
 function confirmSaveSession(){
@@ -3618,21 +3640,44 @@ function confirmSaveSession(){
   const notes=document.getElementById('sessionNotesInput').value.trim();
   const dk=gpx.totalDist/1000, bp=getBasePace();
   const effortVal=parseInt(document.getElementById('effortSlider').value);
+  const sessions=JSON.parse(localStorage.getItem('trp_library')||'[]');
+
+  // If a saved session is currently open, update it in place; else create a new one.
+  const existingIdx = currentSessionFile ? sessions.findIndex(s=>s.filename===currentSessionFile) : -1;
+  const filename = existingIdx >= 0 ? currentSessionFile : ('session_'+Date.now()+'.json');
+
   const data={
     name,raceDate,sType,notes,gpxName:gpx.name,
     distKm:+dk.toFixed(2),elevGain:Math.round(gpx.elevGain),elevLoss:Math.round(gpx.elevLoss),
     finishTime:fmtDuration(getTotalRaceMin()),startTimeVal,
     effortSliderVal:effortVal, stopMin,
+    raceMode:RACE_MODE, segTimes:{...segTimes},
     waypoints:waypoints.map(wp=>({...wp})),
     segOverrides:JSON.parse(JSON.stringify(segOverrides)),
-    trackPoints:gpx.points.filter((_,i)=>i%10===0).map(p=>[+p.lat.toFixed(6),+p.lon.toFixed(6),Math.round(p.ele)]),
-    savedAt:new Date().toISOString(),filename:'session_'+Date.now()+'.json'
+    nutriPlan:JSON.parse(JSON.stringify(nutriPlan)),
+    equipPlan:JSON.parse(JSON.stringify(equipPlan)),
+    // Store a moderately decimated track (1/4) for map/chart display.
+    // Exact distance/D+/D- are saved separately (distKm/elevGain/elevLoss) and
+    // reused on reload, so display metrics never drift despite decimation.
+    trackPoints:gpx.points.filter((_,i)=>i%4===0).map(p=>[+p.lat.toFixed(6),+p.lon.toFixed(6),Math.round(p.ele)]),
+    savedAt:new Date().toISOString(),filename
   };
   document.getElementById('saveSessionModal').classList.remove('show');
-  const sessions=JSON.parse(localStorage.getItem('trp_library')||'[]');
-  sessions.unshift(data);
-  localStorage.setItem('trp_library',JSON.stringify(sessions.slice(0,100)));
-  notify('✓ Sauvegardé dans la bibliothèque','ok');
+
+  if(existingIdx >= 0){
+    sessions[existingIdx] = data;        // update in place
+    notify('✓ Course mise à jour','ok');
+  } else {
+    sessions.unshift(data);              // new entry
+    notify('✓ Sauvegardé dans la bibliothèque','ok');
+  }
+  currentSessionFile = filename;         // now this session is the "open" one
+  try{
+    localStorage.setItem('trp_library',JSON.stringify(sessions.slice(0,100)));
+  }catch(e){
+    notify('Stockage plein — trop de courses ou traces trop lourdes','err');
+    return;
+  }
   refreshLibrary();
 }
 
@@ -3717,6 +3762,9 @@ function openSession(filename){
   const data=sessions.find(s=>s.filename===filename);
   if(!data){ notify('Session introuvable','err'); return; }
 
+  // Track which saved session is now open (so re-saving updates instead of duplicating)
+  currentSessionFile = filename;
+
   // Restore global state
   startTimeVal        = data.startTimeVal || '07:30';
   stopMin             = data.stopMin || 0;
@@ -3732,18 +3780,23 @@ function openSession(filename){
 
   // Restore waypoints and overrides BEFORE processTrack so computeStats works
   waypoints     = (data.waypoints || []).map(wp=>({...wp}));
-  // Restore per-segment overrides if saved
+  // Restore per-segment overrides (clear first so previous session's don't leak in)
+  Object.keys(segOverrides).forEach(k=>delete segOverrides[k]);
   Object.assign(segOverrides, data.segOverrides || {});
   // Restore race mode and quick segment times
   RACE_MODE = data.raceMode || 'analysis';
   segTimes = data.segTimes ? {...data.segTimes} : {};
+  // Restore per-race nutrition and equipment plans
+  nutriPlan = data.nutriPlan ? JSON.parse(JSON.stringify(data.nutriPlan)) : [];
+  equipPlan = data.equipPlan ? JSON.parse(JSON.stringify(data.equipPlan)) : [];
 
   // Process track points (skip the mode popup — mode is restored from session)
   if(data.trackPoints && data.trackPoints.length){
     const points = data.trackPoints.map(([lat,lon,ele])=>({lat,lon,ele}));
     gpx = null;
     processTrack._skipModePopup = true;
-    processTrack(points, data.gpxName || data.name, data.sType==='training');
+    processTrack(points, data.gpxName || data.name, data.sType==='training',
+      {distKm:data.distKm, elevGain:data.elevGain, elevLoss:data.elevLoss});
   }
 
   // Apply mode UI (shows quick panel or analysis controls)
@@ -3769,6 +3822,7 @@ function deleteLibItem(filename){
   if(!confirm('Supprimer cette entrée ?'))return;
   const sessions=JSON.parse(localStorage.getItem('trp_library')||'[]');
   localStorage.setItem('trp_library',JSON.stringify(sessions.filter(s=>s.filename!==filename)));
+  if(currentSessionFile === filename) currentSessionFile = null; // open session was deleted
   refreshLibrary(); notify('Supprimé','ok');
 }
 

@@ -2404,6 +2404,7 @@ let segTimesPrefilled = {}; // tracks which seg times are still model-prefilled 
 let stopMin=10, startTimeVal='07:30';
 let currentFileType='race';
 let currentSessionFile = null; // filename of the currently-open saved session (null = new/unsaved)
+let _userSetTarget = false; // true once the user manually applied a target time (don't auto-overwrite)
 let library={races:[],training:[],routes:[]};
 let pendingImportType=null;
 
@@ -2932,6 +2933,7 @@ function processTrack(points,name,isTraining=false,savedMetrics=null){
   segTimes = {}; segTimesPrefilled = {};
   nutriPlan = [];
   equipPlan = [];
+  _userSetTarget = false; // new track → target auto-fills again until user sets one
   applyRaceModeUI();
   // Reset race mode for fresh load (popup will set it)
   RACE_MODE = 'analysis';
@@ -3071,8 +3073,10 @@ function computeStats(){
   const th = Math.floor(solidTot/60), tm = Math.round(solidTot%60);
   const hInp = document.getElementById('targetH');
   const mInp = document.getElementById('targetM');
-  // Only update inputs if user isn't currently editing them
-  if(hInp && !hInp.matches(':focus') && !mInp.matches(':focus')){
+  // Only auto-fill the target inputs when the user hasn't set a manual target
+  // and isn't currently editing them. Once a manual target exists, leave it alone
+  // (otherwise the field fights the user's input and appears "stuck").
+  if(hInp && mInp && !_userSetTarget && !hInp.matches(':focus') && !mInp.matches(':focus')){
     hInp.value = th;
     mInp.value = String(tm).padStart(2,'0');
   }
@@ -3358,16 +3362,19 @@ function applyTargetTime(){
   const m = parseInt(mInp.value) || 0;
   const totalMin = h * 60 + m;
   if(totalMin < 1) return; // ignore invalid
+  _userSetTarget = true; // remember the user fixed a target → don't auto-overwrite it
   const dk = gpx.totalDist / 1000;
   const movingMin = Math.max(1, totalMin - getTotalStopMin());
 
   // Calibrate exactly: measure what the model produces at BASE=1 (moving only,
   // including real per-segment fatigue), then scale BASE so total = target.
-  // This avoids any drift between the avgFatigue approximation and the real sum.
-  const prevBase = BASE_PACE_SOLIDE;
+  // The cumulative-time cache depends on BASE_PACE_SOLIDE, so it must be cleared
+  // before each measurement, otherwise getTotalRaceMin() returns a stale total.
   BASE_PACE_SOLIDE = 1;
+  invalidateVolatileCaches();
   const unitMoving = Math.max(0.0001, getTotalRaceMin() - getTotalStopMin());
   BASE_PACE_SOLIDE = movingMin / unitMoving;
+  invalidateVolatileCaches();
 
   computeStats();
   drawElevation();
@@ -3375,24 +3382,27 @@ function applyTargetTime(){
 
 // Auto-advance: typing 2 digits in hours jumps to minutes
 document.getElementById('targetH').addEventListener('input', function(){
-  // Clamp
+  // Auto-advance to minutes when hours are clearly complete (2 digits or >9)
   if(this.value.length >= 2 || parseInt(this.value) > 9){
     document.getElementById('targetM').focus();
     document.getElementById('targetM').select();
   }
 });
-// Apply on blur or Enter for either field
+// Apply whenever either field changes (fires on blur/Enter/value commit) — reliable
+// for both hours-only and minutes edits.
 let _applyingTarget = false;
+function _commitTarget(){
+  if(_applyingTarget) return;
+  _applyingTarget = true;
+  applyTargetTime();
+  _applyingTarget = false;
+}
 ['targetH','targetM'].forEach(id => {
   const el = document.getElementById(id);
-  el.addEventListener('blur', ()=>{
-    if(_applyingTarget) return;
-    _applyingTarget = true;
-    applyTargetTime();
-    _applyingTarget = false;
-  });
+  el.addEventListener('change', _commitTarget); // fires reliably when value is committed
+  el.addEventListener('blur', _commitTarget);
   el.addEventListener('keydown', e => {
-    if(e.key === 'Enter'){ el.blur(); }
+    if(e.key === 'Enter'){ _commitTarget(); el.blur(); }
     // Minutes: clamp to 59 as user types (no apply mid-typing)
     if(id === 'targetM' && e.key !== 'Backspace' && e.key !== 'Tab' && e.key.length === 1){
       const next = parseInt(el.value + e.key);
@@ -3403,6 +3413,7 @@ let _applyingTarget = false;
 
 // ── Effort slider ───────────────────────────────────────────
 document.getElementById('effortSlider').addEventListener('input', function(){
+  _userSetTarget = false; // moving effort recomputes the total → let the target field follow
   computeStats(); drawElevation();
 });
 
@@ -3764,6 +3775,7 @@ function openSession(filename){
 
   // Track which saved session is now open (so re-saving updates instead of duplicating)
   currentSessionFile = filename;
+  _userSetTarget = false; // let the field reflect the loaded session's time
 
   // Restore global state
   startTimeVal        = data.startTimeVal || '07:30';
